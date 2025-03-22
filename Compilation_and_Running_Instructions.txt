@@ -1,0 +1,44 @@
+HOW TO COMPILE & RUN THE BIG BOOM GAME
+
+===========================
+COMPILATION (Required Once)
+===========================
+1. Open Command Prompt (cmd) and navigate to the project directory (\BigBoom).
+2. Run the following command to compile all Java files:
+	compile.bat
+	
+- This will compile all necessary files for both client and server.
+- Any errors will be logged to `compile_client_errors.txt` and 	`compile_server_errors.txt`.
+
+================
+RUNNING THE GAME
+================
+1. Double-click on "run.bat" and choose the mode you want to run:
+	- 1: Single-Player Mode (No networking involved).
+	- 2: Server Moded (Networked, provides IP Address for clients to connect).
+	- 3: Client Mode (Connect to a server with the provided IP Address)
+	
+======================
+RUNNING IN SERVER MODE
+======================
+- After choosing option 2, your local IP address will be displayed.
+- Share this IP address with clients who wish to connect.
+- The server will run and wait for connections.
+
+======================
+RUNNING IN CLIENT MODE
+======================
+- After choosing option 3, you will be prompted to enter the server IP address.
+- Make sure the server is running before attempting to connect.
+
+=============================
+REQUIREMENTS FOR NETWORK MODE
+=============================
+- Ensure the host computer's firewall allows traffic on port 6010.
+- Ensure all clients are on the same network or have network access to the server.
+
+========================
+SHUTTING DOWN THE SERVER
+========================
+1. When you want to end the server session, simply close the server window.
+2. Alternatively, press Ctrl + C in the Command Prompt where the server is running.
