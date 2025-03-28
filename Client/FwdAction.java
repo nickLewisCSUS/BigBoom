@@ -27,7 +27,7 @@ public class FwdAction extends AbstractInputAction
 		fwdDirection.mul(0.01f);
 		newPosition = oldPosition.add(fwdDirection.x(), fwdDirection.y(), fwdDirection.z());
 		av.setLocalLocation(newPosition);
-		protClient.sendMoveMessage(av.getWorldLocation());
+		protClient.sendMoveMessage(av.getWorldLocation(), av.getWorldRotation());
 	}
 }
 

@@ -129,7 +129,7 @@ public class MyGame extends VariableFrameRateGame
 
 		// build some action objects for doing things in response to user input
 		FwdAction fwdAction = new FwdAction(this, protClient);
-		TurnAction turnAction = new TurnAction(this);
+		TurnAction turnAction = new TurnAction(this, protClient);
 
 		// attach the action objects to keyboard and gamepad components
 		im.associateActionWithAllGamepads(
@@ -199,7 +199,7 @@ public class MyGame extends VariableFrameRateGame
 				fwdDirection.mul(0.05f);
 				Vector3f newPosition = oldPosition.add(fwdDirection.x(), fwdDirection.y(), fwdDirection.z());
 				avatar.setLocalLocation(newPosition);
-				protClient.sendMoveMessage(avatar.getWorldLocation());
+				protClient.sendMoveMessage(avatar.getWorldLocation(), avatar.getWorldRotation());
 				break;
 			}
 			case KeyEvent.VK_D:
@@ -209,6 +209,10 @@ public class MyGame extends VariableFrameRateGame
 				Matrix4f newRotation = oldRotation;
 				newRotation.mul(rotAroundAvatarUp);
 				avatar.setLocalRotation(newRotation);
+
+				// Send updated rotation to other clients!
+				protClient.sendMoveMessage(avatar.getWorldLocation(), avatar.getWorldRotation());
+
 				break;
 			}
 		}

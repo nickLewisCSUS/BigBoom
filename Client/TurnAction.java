@@ -11,9 +11,11 @@ public class TurnAction extends AbstractInputAction
 	private GameObject av;
 	private Vector4f oldUp;
 	private Matrix4f rotAroundAvatarUp, oldRotation, newRotation;
+	private ProtocolClient protClient;
 
-	public TurnAction(MyGame g)
+	public TurnAction(MyGame g, ProtocolClient p)
 	{	game = g;
+		protClient = p;
 	}
 
 	@Override
@@ -28,6 +30,7 @@ public class TurnAction extends AbstractInputAction
 		newRotation = oldRotation;
 		newRotation.mul(rotAroundAvatarUp);
 		av.setLocalRotation(newRotation);
+		protClient.sendMoveMessage(av.getWorldLocation(), av.getWorldRotation());
 	}
 }
 

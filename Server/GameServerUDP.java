@@ -63,11 +63,20 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 			}
 			
 			// MOVE --- Case where server receives a move message
-			// Received Message Format: (move,localId,x,y,z)
+			// Now supports full position + rotation
 			if(messageTokens[0].compareTo("move") == 0)
 			{	UUID clientID = UUID.fromString(messageTokens[1]);
-				String[] pos = {messageTokens[2], messageTokens[3], messageTokens[4]};
-				sendMoveMessages(clientID, pos);
+				// Rebuild full move message to forward to other clients
+				StringBuilder moveMessage = new StringBuilder("move," + clientID.toString());
+				for (int i = 2; i < messageTokens.length; i++) {
+					moveMessage.append(",").append(messageTokens[i]);
+				}
+
+				try {
+					forwardPacketToAll(moveMessage.toString(), clientID);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 	}	}	}
 
 	// Informs the client who just requested to join the server if their if their 
