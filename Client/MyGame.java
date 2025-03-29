@@ -34,10 +34,13 @@ public class MyGame extends VariableFrameRateGame
 	private Matrix4f initialTranslation, initialRotation, initialScale;
 	private double startTime, prevTime, elapsedTime, amt;
 
-	private GameObject tor, avatar, x, y, z;
-	private ObjShape torS, ghostS, dolS, linxS, linyS, linzS;
+	private GameObject tor, avatar, x, y, z, playerHealthBar;
+	private ObjShape torS, ghostS, dolS, linxS, linyS, linzS, healthS;
 	private TextureImage doltx, ghostT;
 	private Light light;
+	
+	private float currentHealth = 100f;
+	private float maxHealth = 100f;
 
 	private String serverAddress;
 	private int serverPort;
@@ -71,6 +74,7 @@ public class MyGame extends VariableFrameRateGame
 		linxS = new Line(new Vector3f(0f,0f,0f), new Vector3f(3f,0f,0f));
 		linyS = new Line(new Vector3f(0f,0f,0f), new Vector3f(0f,3f,0f));
 		linzS = new Line(new Vector3f(0f,0f,0f), new Vector3f(0f,0f,-3f));
+		healthS = new Cube();
 	}
 
 	@Override
@@ -104,6 +108,16 @@ public class MyGame extends VariableFrameRateGame
 		(x.getRenderStates()).setColor(new Vector3f(1f,0f,0f));
 		(y.getRenderStates()).setColor(new Vector3f(0f,1f,0f));
 		(z.getRenderStates()).setColor(new Vector3f(0f,0f,1f));
+
+		float healthRatio = currentHealth / maxHealth;
+		float baseLength = 0.5f; 
+
+		// Create a red health bar using a Cube shape
+		playerHealthBar = new GameObject(avatar, healthS);
+		playerHealthBar.setLocalScale(new Matrix4f().scaling(0.5f, 0.05f, 0.025f));  
+		playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 0.6f, 0f)); 
+		playerHealthBar.getRenderStates().setColor(new Vector3f(1f, 0f, 0f)); // bright red
+		playerHealthBar.getRenderStates().setTextureEnabled(false);
 	}
 
 	@Override
@@ -165,9 +179,17 @@ public class MyGame extends VariableFrameRateGame
 		(engine.getHUDmanager()).setHUD1(dispStr1, hud1Color, 15, 15);
 		(engine.getHUDmanager()).setHUD2(dispStr2, hud2Color, 500, 15);
 
-		// update inputs and camera
-		im.update((float)elapsedTime);
 		positionCameraBehindAvatar();
+
+		// Update health bar position and scale
+		playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 0.6f, 0f));
+		float healthRatio = currentHealth / maxHealth;
+		float baseLength = 0.5f;
+		playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.05f, 0.025f));
+		playerHealthBar.getRenderStates().setColor(new Vector3f(1f, 0f, 0f));
+
+		// Update input and networking
+		im.update((float)elapsedTime);
 		processNetworking((float)elapsedTime);
 	}
 
