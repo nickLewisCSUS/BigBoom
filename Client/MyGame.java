@@ -114,12 +114,6 @@ public class MyGame extends VariableFrameRateGame
 		(z.getRenderStates()).setColor(new Vector3f(0f,0f,1f));
 
 		playerHealthBar = new GameObject(avatar, playerHealthBarS, playerHealthBarT);
-		playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 0.45f, 0f));
-
-		// Optionally set initial scale
-		float healthRatio = currentHealth / maxHealth;
-		float baseLength = 0.25f;
-		playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.001f, 0.001f));
 	}
 
 	@Override
@@ -189,7 +183,7 @@ public class MyGame extends VariableFrameRateGame
 			playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 0.45f, 0f));
 			float healthRatio = currentHealth / maxHealth;
 			float baseLength = 0.25f;
-			playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.001f, 0.001f));
+			playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.0005f, 0.001f));
 		} else {
 			playerHealthBar.setLocalScale(new Matrix4f().scaling(0f)); // Hide it safely
 		}
@@ -206,10 +200,10 @@ public class MyGame extends VariableFrameRateGame
 		positionCameraBehindAvatar();
 
 		// Update health bar position and scale
-		playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 0.6f, 0f));
+		playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 0.4f, 0f));
 		float healthRatio = currentHealth / maxHealth;
-		float baseLength = 0.5f;
-		playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.05f, 0.025f));
+		float baseLength = 0.25f;
+		playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.001f, 0.001f));
 		playerHealthBar.getRenderStates().setColor(new Vector3f(1f, 0f, 0f));
 
 		// Update input and networking
