@@ -39,6 +39,7 @@ public class MyGame extends VariableFrameRateGame
 	private TextureImage doltx, ghostT, playerHealthBarT;
 	private Light light;
 
+
 	private String serverAddress;
 	private int serverPort;
 	private ProtocolType serverProtocol;
@@ -203,6 +204,16 @@ public class MyGame extends VariableFrameRateGame
 		// update inputs and camera
 		im.update((float)elapsedTime);
 		positionCameraBehindAvatar();
+
+		// Update health bar position and scale
+		playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 0.6f, 0f));
+		float healthRatio = currentHealth / maxHealth;
+		float baseLength = 0.5f;
+		playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.05f, 0.025f));
+		playerHealthBar.getRenderStates().setColor(new Vector3f(1f, 0f, 0f));
+
+		// Update input and networking
+		im.update((float)elapsedTime);
 		processNetworking((float)elapsedTime);
 
 	}
