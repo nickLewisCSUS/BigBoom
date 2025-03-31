@@ -34,9 +34,9 @@ public class MyGame extends VariableFrameRateGame
 	private Matrix4f initialTranslation, initialRotation, initialScale;
 	private double startTime, prevTime, elapsedTime, amt;
 
-	private GameObject tor, avatar, x, y, z;
-	private ObjShape torS, ghostS, dolS, linxS, linyS, linzS;
-	private TextureImage doltx, ghostT;
+	private GameObject tor, avatar, x, y, z, playerHealthBar;
+	private ObjShape torS, ghostS, dolS, linxS, linyS, linzS, playerHealthBarS;
+	private TextureImage doltx, ghostT, playerHealthBarT;
 	private Light light;
 
 	private String serverAddress;
@@ -44,6 +44,11 @@ public class MyGame extends VariableFrameRateGame
 	private ProtocolType serverProtocol;
 	private ProtocolClient protClient;
 	private boolean isClientConnected = false;
+
+	private boolean showHealthBar = true;
+	private float currentHealth = 100.0f;
+	private float maxHealth = 100f;
+
 
 	public MyGame(String serverAddress, int serverPort, String protocol)
 	{	super();
@@ -71,12 +76,14 @@ public class MyGame extends VariableFrameRateGame
 		linxS = new Line(new Vector3f(0f,0f,0f), new Vector3f(3f,0f,0f));
 		linyS = new Line(new Vector3f(0f,0f,0f), new Vector3f(0f,3f,0f));
 		linzS = new Line(new Vector3f(0f,0f,0f), new Vector3f(0f,0f,-3f));
+		playerHealthBarS = new Cube();
 	}
 
 	@Override
 	public void loadTextures()
 	{	doltx = new TextureImage("Dolphin_HighPolyUV.png");
 		ghostT = new TextureImage("redDolphin.jpg");
+		playerHealthBarT = new TextureImage("red.png");
 	}
 
 	@Override
@@ -104,6 +111,14 @@ public class MyGame extends VariableFrameRateGame
 		(x.getRenderStates()).setColor(new Vector3f(1f,0f,0f));
 		(y.getRenderStates()).setColor(new Vector3f(0f,1f,0f));
 		(z.getRenderStates()).setColor(new Vector3f(0f,0f,1f));
+
+		playerHealthBar = new GameObject(avatar, playerHealthBarS, playerHealthBarT);
+		playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 0.45f, 0f));
+
+		// Optionally set initial scale
+		float healthRatio = currentHealth / maxHealth;
+		float baseLength = 0.25f;
+		playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.001f, 0.001f));
 	}
 
 	@Override
@@ -130,6 +145,7 @@ public class MyGame extends VariableFrameRateGame
 		// build some action objects for doing things in response to user input
 		FwdAction fwdAction = new FwdAction(this, protClient);
 		TurnAction turnAction = new TurnAction(this, protClient);
+		ToggleHealthBarAction toggleHealthBar = new ToggleHealthBarAction();
 
 		// attach the action objects to keyboard and gamepad components
 		im.associateActionWithAllGamepads(
@@ -138,9 +154,12 @@ public class MyGame extends VariableFrameRateGame
 		im.associateActionWithAllGamepads(
 			net.java.games.input.Component.Identifier.Axis.X,
 			turnAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+		im.associateActionWithAllGamepads(
+			net.java.games.input.Component.Identifier.Button._2,
+			toggleHealthBar, InputManager.INPUT_ACTION_TYPE.ON_PRESS_ONLY);
 
-		setupNetworking();
-	}
+				setupNetworking();
+			}
 
 	public GameObject getAvatar() { return avatar; }
 
@@ -165,10 +184,27 @@ public class MyGame extends VariableFrameRateGame
 		(engine.getHUDmanager()).setHUD1(dispStr1, hud1Color, 15, 15);
 		(engine.getHUDmanager()).setHUD2(dispStr2, hud2Color, 500, 15);
 
+		if (showHealthBar) {
+			playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 0.45f, 0f));
+			float healthRatio = currentHealth / maxHealth;
+			float baseLength = 0.25f;
+			playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.001f, 0.001f));
+		} else {
+			playerHealthBar.setLocalScale(new Matrix4f().scaling(0f)); // Hide it safely
+		}
+	
+		im.update((float)elapsedTime);
+		processNetworking((float)elapsedTime);;
+
+		// Inputs and networking
+		im.update((float)elapsedTime);
+		processNetworking((float)elapsedTime);
+
 		// update inputs and camera
 		im.update((float)elapsedTime);
 		positionCameraBehindAvatar();
 		processNetworking((float)elapsedTime);
+
 	}
 
 	private void positionCameraBehindAvatar()
@@ -215,8 +251,23 @@ public class MyGame extends VariableFrameRateGame
 
 				break;
 			}
+
+			case KeyEvent.VK_H:
+			{
+				showHealthBar = !showHealthBar;
+				break;
+			}
 		}
 		super.keyPressed(e);
+	}
+
+	// -------- Health Bar Section ---------
+	private class ToggleHealthBarAction extends AbstractInputAction {
+		@Override
+		public void performAction(float time, net.java.games.input.Event evt) {
+			showHealthBar = !showHealthBar;
+			System.out.println("Health bar toggled: " + (showHealthBar ? "ON" : "OFF"));
+		}
 	}
 
 	// ---------- NETWORKING SECTION ----------------
