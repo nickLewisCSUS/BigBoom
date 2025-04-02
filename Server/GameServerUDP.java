@@ -61,6 +61,17 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 				String[] pos = {messageTokens[3], messageTokens[4], messageTokens[5]};
 				sendDetailsForMessage(clientID, remoteID, pos);
 			}
+
+			// HEALTH --- Server received health update
+			if (messageTokens[0].compareTo("health") == 0) {
+				UUID clientID = UUID.fromString(messageTokens[1]);
+				String healthMessage = String.join(",", messageTokens); // Forward as-is
+				try {
+					forwardPacketToAll(healthMessage, clientID);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 			
 			// MOVE --- Case where server receives a move message
 			// Now supports full position + rotation

@@ -26,6 +26,7 @@ public class GhostManager
 		GhostAvatar newAvatar = new GhostAvatar(id, s, t, position);
 		Matrix4f initialScale = (new Matrix4f()).scaling(0.25f);
 		newAvatar.setLocalScale(initialScale);
+		newAvatar.createHealthBar(game.getPlayerHealthBarShape(), game.getPlayerHealthBarTexture());
 		ghostAvatars.add(newAvatar);
 	}
 	
@@ -60,6 +61,13 @@ public class GhostManager
 		}
 		else
 		{	System.out.println("tried to update ghost avatar position, but unable to find ghost in list");
+		}
+	}
+
+	public void setGhostHealth(UUID id, float health) {
+		GhostAvatar ghost = findAvatar(id);
+		if (ghost != null) {
+			ghost.setHealth(health);  // updates and rescales health bar
 		}
 	}
 }

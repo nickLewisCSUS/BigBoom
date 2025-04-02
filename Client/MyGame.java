@@ -262,6 +262,11 @@ public class MyGame extends VariableFrameRateGame
 				showHealthBar = !showHealthBar;
 				break;
 			}
+			case KeyEvent.VK_K: // test damage with 'K' key
+				currentHealth -= 10;
+				if (currentHealth < 0) currentHealth = 0;
+				protClient.sendHealthUpdate(currentHealth);
+				break;
 		}
 		super.keyPressed(e);
 	}
@@ -273,6 +278,13 @@ public class MyGame extends VariableFrameRateGame
 			showHealthBar = !showHealthBar;
 			System.out.println("Health bar toggled: " + (showHealthBar ? "ON" : "OFF"));
 		}
+	}
+	public ObjShape getPlayerHealthBarShape() {
+		return playerHealthBarS;
+	}
+	
+	public TextureImage getPlayerHealthBarTexture() {
+		return playerHealthBarT;
 	}
 
 	// ---------- NETWORKING SECTION ----------------

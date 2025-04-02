@@ -89,6 +89,14 @@ public class ProtocolClient extends GameConnectionClient
 				UUID ghostID = UUID.fromString(messageTokens[1]);
 				sendDetailsForMessage(ghostID, game.getPlayerPosition());
 			}
+
+			// Handle HEALTH message
+			// Format: (health,remoteId,value)
+			if (messageTokens[0].compareTo("health") == 0) {
+				UUID ghostID = UUID.fromString(messageTokens[1]);
+				float health = Float.parseFloat(messageTokens[2]);
+				ghostManager.setGhostHealth(ghostID, health);
+			}
 			
 			// Handle MOVE message
 			// Format: (move,remoteId,x,y,z)
@@ -194,4 +202,13 @@ public class ProtocolClient extends GameConnectionClient
 		} catch (IOException e) 
 		{	e.printStackTrace();
 	}	}
+
+	public void sendHealthUpdate(float health) {
+		try {
+			String message = "health," + id.toString() + "," + health;
+			sendPacket(message);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 }
