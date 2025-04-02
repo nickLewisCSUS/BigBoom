@@ -138,6 +138,7 @@ public class MyGame extends VariableFrameRateGame
 		im = engine.getInputManager();
 
 		// build some action objects for doing things in response to user input
+		ProtocolClient p = isClientConnected ? protClient : null;
 		FwdAction fwdAction = new FwdAction(this, protClient);
 		TurnAction turnAction = new TurnAction(this, protClient);
 		ToggleHealthBarAction toggleHealthBar = new ToggleHealthBarAction();
@@ -146,9 +147,21 @@ public class MyGame extends VariableFrameRateGame
 		im.associateActionWithAllGamepads(
 			net.java.games.input.Component.Identifier.Button._1,
 			fwdAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+		im.associateActionWithAllKeyboards(
+			net.java.games.input.Component.Identifier.Key.W,
+			fwdAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+		im.associateActionWithAllKeyboards(
+			net.java.games.input.Component.Identifier.Key.S,
+			fwdAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+
 		im.associateActionWithAllGamepads(
 			net.java.games.input.Component.Identifier.Axis.X,
 			turnAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+		im.associateActionWithAllKeyboards(net.java.games.input.Component.Identifier.Key.A,
+			turnAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+		im.associateActionWithAllKeyboards(net.java.games.input.Component.Identifier.Key.D,
+			turnAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+
 		im.associateActionWithAllGamepads(
 			net.java.games.input.Component.Identifier.Button._2,
 			toggleHealthBar, InputManager.INPUT_ACTION_TYPE.ON_PRESS_ONLY);
@@ -233,30 +246,7 @@ public class MyGame extends VariableFrameRateGame
 	@Override
 	public void keyPressed(KeyEvent e)
 	{	switch (e.getKeyCode())
-		{	case KeyEvent.VK_W:
-			{	Vector3f oldPosition = avatar.getWorldLocation();
-				Vector4f fwdDirection = new Vector4f(0f,0f,1f,1f);
-				fwdDirection.mul(avatar.getWorldRotation());
-				fwdDirection.mul(0.05f);
-				Vector3f newPosition = oldPosition.add(fwdDirection.x(), fwdDirection.y(), fwdDirection.z());
-				avatar.setLocalLocation(newPosition);
-				protClient.sendMoveMessage(avatar.getWorldLocation(), avatar.getWorldRotation());
-				break;
-			}
-			case KeyEvent.VK_D:
-			{	Matrix4f oldRotation = new Matrix4f(avatar.getWorldRotation());
-				Vector4f oldUp = new Vector4f(0f,1f,0f,1f).mul(oldRotation);
-				Matrix4f rotAroundAvatarUp = new Matrix4f().rotation(-.01f, new Vector3f(oldUp.x(), oldUp.y(), oldUp.z()));
-				Matrix4f newRotation = oldRotation;
-				newRotation.mul(rotAroundAvatarUp);
-				avatar.setLocalRotation(newRotation);
-
-				// Send updated rotation to other clients!
-				protClient.sendMoveMessage(avatar.getWorldLocation(), avatar.getWorldRotation());
-
-				break;
-			}
-
+		{
 			case KeyEvent.VK_H:
 			{
 				showHealthBar = !showHealthBar;
