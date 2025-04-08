@@ -22,6 +22,11 @@ import org.joml.*;
 import net.java.games.input.*;
 import net.java.games.input.Component.Identifier.*;
 import tage.networking.IGameConnection.ProtocolType;
+import tage.physics.*;
+
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.File;
 
 public class MyGame extends VariableFrameRateGame
 {
@@ -34,9 +39,9 @@ public class MyGame extends VariableFrameRateGame
 	private Matrix4f initialTranslation, initialRotation, initialScale;
 	private double startTime, prevTime, elapsedTime, amt;
 
-	private GameObject tor, avatar, x, y, z;
-	private ObjShape torS, ghostS, dolS, linxS, linyS, linzS;
-	private TextureImage doltx, ghostT;
+	private GameObject tor, avatar, x, y, z, terrain, maze, speedBoost;
+	private ObjShape torS, ghostS, dolS, linxS, linyS, linzS, terrainShape, mazeShape, speedBoostShape;
+	private TextureImage doltx, ghostT, terrainHeightMap, terrainTexture, mazeHeightMap, mazeTexture, speedBoostTexture;
 	private Light light;
 
 	private String serverAddress;
@@ -44,6 +49,16 @@ public class MyGame extends VariableFrameRateGame
 	private ProtocolType serverProtocol;
 	private ProtocolClient protClient;
 	private boolean isClientConnected = false;
+
+	private int battleField;
+	private PhysicsEngine physicsEngine;
+	private Vector3f lastValidPosition;
+	public enum MovementDirection { NONE, FORWARD, BACKWARD }
+	private MovementDirection moveDirection = MovementDirection.NONE;
+	private Vector3f nextPosition = null;
+	private boolean terrainFollowMode = true;
+    private float[] vals = new float[16];
+
 
 	public MyGame(String serverAddress, int serverPort, String protocol)
 	{	super();
@@ -71,24 +86,42 @@ public class MyGame extends VariableFrameRateGame
 		linxS = new Line(new Vector3f(0f,0f,0f), new Vector3f(3f,0f,0f));
 		linyS = new Line(new Vector3f(0f,0f,0f), new Vector3f(0f,3f,0f));
 		linzS = new Line(new Vector3f(0f,0f,0f), new Vector3f(0f,0f,-3f));
+		terrainShape = new TerrainPlane(1024);
+		mazeShape = new TerrainPlane(1024);
+		speedBoostShape = new ImportedModel("speedboost.obj");
 	}
 
 	@Override
 	public void loadTextures()
 	{	doltx = new TextureImage("Dolphin_HighPolyUV.png");
 		ghostT = new TextureImage("redDolphin.jpg");
+		terrainHeightMap = new TextureImage("terrain_height.png");
+		terrainTexture = new TextureImage("terrain_texture1.png");
+		mazeHeightMap = new TextureImage("maze.png");
+		mazeTexture = new TextureImage("metal.jpg");
+		speedBoostTexture = new TextureImage("speedBoostTx.png");
 	}
 
 	@Override
 	public void buildObjects()
 	{	Matrix4f initialTranslation, initialRotation, initialScale;
 
-		// build dolphin avatar
-		avatar = new GameObject(GameObject.root(), dolS, doltx);
-		initialTranslation = (new Matrix4f()).translation(-1f,0f,1f);
-		avatar.setLocalTranslation(initialTranslation);
+		physicsEngine = engine.getSceneGraph().getPhysicsEngine();
+        physicsEngine.initSystem();
+        buildTerrain();
+        buildMaze();
+        buildAvatar();
+
+		lastValidPosition = avatar.getWorldLocation();
+
+		// build speed powerup
+		speedBoost = new GameObject(GameObject.root(), speedBoostShape, speedBoostTexture);
+		initialTranslation = (new Matrix4f()).translation(0f,0f,-1f);
+		speedBoost.setLocalTranslation(initialTranslation);
 		initialRotation = (new Matrix4f()).rotationY((float)java.lang.Math.toRadians(135.0f));
-		avatar.setLocalRotation(initialRotation);
+		speedBoost.setLocalRotation(initialRotation);
+		initialScale = (new Matrix4f()).scaling(0.25f);
+		speedBoost.setLocalScale(initialScale);
 
 		// build torus along X axis
 		tor = new GameObject(GameObject.root(), torS);
@@ -168,6 +201,30 @@ public class MyGame extends VariableFrameRateGame
 		// update inputs and camera
 		im.update((float)elapsedTime);
 		positionCameraBehindAvatar();
+        physicsEngine.update(0.016f); // 60Hz step
+		if (terrainFollowMode) {
+		updateAvatarHeight();
+        updateAvatarPhysics();
+		}
+
+		if (moveDirection != MovementDirection.NONE && nextPosition != null) {
+			float terrainHeight = terrain.getHeight(nextPosition.x(), nextPosition.z());
+			float mazeHeight = maze.getHeight(nextPosition.x(), nextPosition.z());
+
+			if (mazeHeight >= 1.0f) {
+				System.out.println("Blocked by wall at " + nextPosition.x() + ", " + nextPosition.z());
+			} else {
+				if (terrainFollowMode) {
+					Vector3f adjustedPos = new Vector3f(nextPosition.x(), terrainHeight - 9f, nextPosition.z());
+					avatar.setLocalLocation(adjustedPos);
+				} else {
+					avatar.setLocalLocation(nextPosition);
+				}
+				protClient.sendMoveMessage(avatar.getWorldLocation());
+			}
+			moveDirection = MovementDirection.NONE;
+			nextPosition = null;
+		}
 		processNetworking((float)elapsedTime);
 	}
 
@@ -191,25 +248,64 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void keyPressed(KeyEvent e)
-	{	switch (e.getKeyCode())
+	{	Vector3f oldPos = avatar.getWorldLocation();
+		Matrix4f oldRotation = avatar.getWorldRotation();
+		
+		switch (e.getKeyCode())
 		{	case KeyEvent.VK_W:
-			{	Vector3f oldPosition = avatar.getWorldLocation();
-				Vector4f fwdDirection = new Vector4f(0f,0f,1f,1f);
-				fwdDirection.mul(avatar.getWorldRotation());
+			{	Vector4f fwdDirection = new Vector4f(0f, 0f, 1f, 1f).mul(oldRotation);
 				fwdDirection.mul(0.05f);
-				Vector3f newPosition = oldPosition.add(fwdDirection.x(), fwdDirection.y(), fwdDirection.z());
-				avatar.setLocalLocation(newPosition);
-				protClient.sendMoveMessage(avatar.getWorldLocation());
+				nextPosition = oldPos.add(fwdDirection.x(), fwdDirection.y(), fwdDirection.z());
+				moveDirection = MovementDirection.FORWARD;
+				break;
+			}
+			case KeyEvent.VK_S:
+			{	Vector4f fwdDirection = new Vector4f(0f,0f,1f,1f).mul(oldRotation);
+				fwdDirection.mul(-0.05f);
+				nextPosition = oldPos.add(fwdDirection.x(), fwdDirection.y(), fwdDirection.z());
+				moveDirection = MovementDirection.BACKWARD;
 				break;
 			}
 			case KeyEvent.VK_D:
-			{	Matrix4f oldRotation = new Matrix4f(avatar.getWorldRotation());
-				Vector4f oldUp = new Vector4f(0f,1f,0f,1f).mul(oldRotation);
+			{	Vector4f oldUp = new Vector4f(0f,1f,0f,1f).mul(oldRotation);
 				Matrix4f rotAroundAvatarUp = new Matrix4f().rotation(-.01f, new Vector3f(oldUp.x(), oldUp.y(), oldUp.z()));
 				Matrix4f newRotation = oldRotation;
 				newRotation.mul(rotAroundAvatarUp);
 				avatar.setLocalRotation(newRotation);
 				break;
+			}
+			case KeyEvent.VK_A:
+			{	Vector4f oldUp = new Vector4f(0f,1f,0f,1f).mul(oldRotation);
+				Matrix4f rotAroundAvatarUp = new Matrix4f().rotation(.01f, new Vector3f(oldUp.x(), oldUp.y(), oldUp.z()));
+				Matrix4f newRotation = oldRotation;
+				newRotation.mul(rotAroundAvatarUp);
+				avatar.setLocalRotation(newRotation);
+				break;
+			}
+			case KeyEvent.VK_UP:
+			{	
+				Vector3f right = avatar.getWorldRightVector();
+				Matrix4f rotation = new Matrix4f().rotate(.01f, right.x(), right.y(), right.z());
+				avatar.setLocalRotation(rotation.mul(avatar.getLocalRotation()));
+				break;
+			}
+			case KeyEvent.VK_DOWN:
+			{	
+				Vector3f right = avatar.getWorldRightVector();
+				Matrix4f rotation = new Matrix4f().rotate(-.01f, right.x(), right.y(), right.z());
+				avatar.setLocalRotation(rotation.mul(avatar.getLocalRotation()));
+				break;
+			}
+			case KeyEvent.VK_F:
+			{	
+				terrainFollowMode = !terrainFollowMode;
+				if (!terrainFollowMode) {
+					avatar.setLocalLocation(new Vector3f(0, 50, 0));
+					avatar.lookAt(new Vector3f(0,0,0));
+					System.out.println("Free flight mode enabled.");
+				} else {
+					System.out.println("Terrain-following mode enabled.");
+				}
 			}
 		}
 		super.keyPressed(e);
@@ -259,4 +355,83 @@ public class MyGame extends VariableFrameRateGame
 			}
 		}
 	}
+
+	@Override
+	public void loadSkyBoxes() {
+		battleField = engine.getSceneGraph().loadCubeMap("battleField");
+		(engine.getSceneGraph()).setActiveSkyBoxTexture(battleField);
+		engine.getSceneGraph().setSkyBoxEnabled(true);
+	}
+
+	private void buildTerrain() {
+        float[] up = {0, 1, 0};
+        terrain = new GameObject(GameObject.root(), terrainShape, terrainTexture);
+        terrain.setLocalLocation(new Vector3f(0, -10, 0));
+        terrain.setLocalScale(new Matrix4f().scaling(300f, 20f, 300f));
+        terrain.setHeightMap(terrainHeightMap);
+        terrain.getRenderStates().setTiling(1);
+
+        Matrix4f trans = new Matrix4f(terrain.getLocalTranslation());
+        double[] transform = toDoubleArray(trans.get(vals));
+        PhysicsObject plane = physicsEngine.addStaticPlaneObject(physicsEngine.nextUID(), transform, up, 0f);
+        terrain.setPhysicsObject(plane);
+    }
+
+    private void buildMaze() {
+        float[] up = {0, 1, 0};
+        maze = new GameObject(GameObject.root(), mazeShape, mazeTexture);
+        maze.setLocalLocation(new Vector3f(0, -11, 0));
+        maze.setLocalScale(new Matrix4f().scaling(300f, 20f, 300f));
+        maze.setHeightMap(mazeHeightMap);
+        maze.getRenderStates().setTiling(1);
+		maze.getRenderStates().setTileFactor(1024);
+
+        Matrix4f trans = new Matrix4f(maze.getLocalTranslation());
+        double[] transform = toDoubleArray(trans.get(vals));
+        PhysicsObject plane = physicsEngine.addStaticPlaneObject(physicsEngine.nextUID(), transform, up, 0f);
+        maze.setPhysicsObject(plane);
+    }
+
+    private void buildAvatar() {
+        avatar = new GameObject(GameObject.root(), dolS, doltx);
+        avatar.setLocalLocation(new Vector3f(-1, 0, 0));
+        avatar.setLocalRotation(new Matrix4f().rotationY((float)Math.toRadians(135)));
+		
+        double[] transform = toDoubleArray(avatar.getLocalTranslation().get(vals));
+        PhysicsObject avatarPhys = physicsEngine.addCapsuleObject(physicsEngine.nextUID(), 1f, transform, 1f, 5f);
+        avatar.setPhysicsObject(avatarPhys);
+    }
+
+	private void updateAvatarHeight() {
+		Vector3f loc = avatar.getWorldLocation();
+		float height = terrain.getHeight(loc.x(), loc.z());
+		Vector3f corrected = new Vector3f(loc.x(), height - 9f, loc.z());
+		avatar.setLocalLocation(corrected);
+		
+		// Update physics position
+		Matrix4f translation = avatar.getLocalTranslation();
+		double[] transform = toDoubleArray(translation.get(vals));
+		avatar.getPhysicsObject().setTransform(transform);
+	}
+
+	
+    private void updateAvatarPhysics() {
+        Matrix4f translation = new Matrix4f().set(toFloatArray(avatar.getPhysicsObject().getTransform()));
+        avatar.setLocalTranslation(translation);
+    }
+
+    public double[] toDoubleArray(float[] arr) {
+		double[] result = new double[arr.length];
+		for (int i = 0; i < arr.length; i++) {
+			result[i] = (double) arr[i];
+		}
+		return result;
+    }
+
+    public float[] toFloatArray(double[] arr) {
+        float[] result = new float[arr.length];
+        for (int i = 0; i < arr.length; i++) result[i] = (float) arr[i];
+        return result;
+    }
+
 }
