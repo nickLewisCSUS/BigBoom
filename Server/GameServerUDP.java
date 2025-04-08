@@ -83,6 +83,8 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 					moveMessage.append(",").append(messageTokens[i]);
 				}
 
+				System.out.println("Forwarding MOVE from: " + clientID + " → " + moveMessage.toString());
+
 				try {
 					forwardPacketToAll(moveMessage.toString(), clientID);
 				} catch (IOException e) {

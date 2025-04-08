@@ -105,6 +105,14 @@ public class ProtocolClient extends GameConnectionClient
 				// move a ghost avatar
 				// Parse out the id into a UUID
 				UUID ghostID = UUID.fromString(messageTokens[1]);
+
+				System.out.println("[MOVE] Received MOVE for ghostID: " + ghostID);
+				System.out.println("[MOVE] This client’s ID is: " + this.id);
+				
+				if (ghostID.equals(this.id)) {
+					System.out.println("[MOVE] Skipping self-move packet.");
+					return;
+				}
 				
 				// Parse out the position into a Vector3f
 				Vector3f ghostPosition = new Vector3f(
@@ -181,10 +189,9 @@ public class ProtocolClient extends GameConnectionClient
 		} catch (IOException e) 
 		{	e.printStackTrace();
 	}	}
-	
+
 	// Informs the server that the local avatar has changed position.  
 	// Message Format: (move,localId,x,y,z) where x, y, and z represent the position.
-
 	public void sendMoveMessage(Vector3f position, Matrix4f rotation)
 	{	try 
 		{	String message = new String("move," + id.toString());
@@ -197,7 +204,7 @@ public class ProtocolClient extends GameConnectionClient
 					message += "," + rotation.get(i, j);
 				}
 			}
-			
+			System.out.println("Sending MOVE message: " + message);
 			sendPacket(message);
 		} catch (IOException e) 
 		{	e.printStackTrace();

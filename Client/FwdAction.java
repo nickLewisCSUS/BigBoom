@@ -26,7 +26,6 @@ public class FwdAction extends AbstractInputAction
 		fwdDirection = new Vector4f(0f,0f,1f,1f);
 		fwdDirection.mul(av.getWorldRotation());
 
-		
 		Component.Identifier id = e.getComponent().getIdentifier();
 		float movementAmount;
 
