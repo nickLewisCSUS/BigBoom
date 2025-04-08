@@ -89,6 +89,14 @@ public class ProtocolClient extends GameConnectionClient
 				UUID ghostID = UUID.fromString(messageTokens[1]);
 				sendDetailsForMessage(ghostID, game.getPlayerPosition());
 			}
+
+			// Handle HEALTH message
+			// Format: (health,remoteId,value)
+			if (messageTokens[0].compareTo("health") == 0) {
+				UUID ghostID = UUID.fromString(messageTokens[1]);
+				float health = Float.parseFloat(messageTokens[2]);
+				ghostManager.setGhostHealth(ghostID, health);
+			}
 			
 			// Handle MOVE message
 			// Format: (move,remoteId,x,y,z)
@@ -97,14 +105,32 @@ public class ProtocolClient extends GameConnectionClient
 				// move a ghost avatar
 				// Parse out the id into a UUID
 				UUID ghostID = UUID.fromString(messageTokens[1]);
+
+				System.out.println("[MOVE] Received MOVE for ghostID: " + ghostID);
+				System.out.println("[MOVE] This clientâ€™s ID is: " + this.id);
+				
+				if (ghostID.equals(this.id)) {
+					System.out.println("[MOVE] Skipping self-move packet.");
+					return;
+				}
 				
 				// Parse out the position into a Vector3f
 				Vector3f ghostPosition = new Vector3f(
 					Float.parseFloat(messageTokens[2]),
 					Float.parseFloat(messageTokens[3]),
 					Float.parseFloat(messageTokens[4]));
+
+				// Parse rotation matrix
+				Matrix4f rot = new Matrix4f();
+				int index = 5;
+				for (int i = 0; i < 4; i++) {
+					for (int j = 0; j < 4; j++) {
+						rot.set(i, j, Float.parseFloat(messageTokens[index++]));
+					}
+				}
+
 				
-				ghostManager.updateGhostAvatar(ghostID, ghostPosition);
+				ghostManager.updateGhostAvatar(ghostID, ghostPosition, rot);
 	}	}	}
 	
 	// The initial message from the game client requesting to join the 
@@ -129,7 +155,7 @@ public class ProtocolClient extends GameConnectionClient
 		{	e.printStackTrace();
 	}	}
 	
-	// Informs the server of the client’s Avatar’s position. The server 
+	// Informs the server of the clientï¿½s Avatarï¿½s position. The server 
 	// takes this message and forwards it to all other clients registered 
 	// with the server.
 	// Message Format: (create,localId,x,y,z) where x, y, and z represent the position
@@ -163,19 +189,33 @@ public class ProtocolClient extends GameConnectionClient
 		} catch (IOException e) 
 		{	e.printStackTrace();
 	}	}
-	
+
 	// Informs the server that the local avatar has changed position.  
 	// Message Format: (move,localId,x,y,z) where x, y, and z represent the position.
-
-	public void sendMoveMessage(Vector3f position)
+	public void sendMoveMessage(Vector3f position, Matrix4f rotation)
 	{	try 
 		{	String message = new String("move," + id.toString());
 			message += "," + position.x();
 			message += "," + position.y();
 			message += "," + position.z();
-			
+
+			for (int i = 0; i < 4; i++) {
+				for (int j = 0; j < 4; j++) {
+					message += "," + rotation.get(i, j);
+				}
+			}
+			System.out.println("Sending MOVE message: " + message);
 			sendPacket(message);
 		} catch (IOException e) 
 		{	e.printStackTrace();
 	}	}
+
+	public void sendHealthUpdate(float health) {
+		try {
+			String message = "health," + id.toString() + "," + health;
+			sendPacket(message);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 }
