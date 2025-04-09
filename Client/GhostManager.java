@@ -26,6 +26,7 @@ public class GhostManager
 		GhostAvatar newAvatar = new GhostAvatar(id, s, t, position);
 		Matrix4f initialScale = (new Matrix4f()).scaling(0.25f);
 		newAvatar.setLocalScale(initialScale);
+		newAvatar.createHealthBar(game.getPlayerHealthBarShape(), game.getPlayerHealthBarTexture());
 		ghostAvatars.add(newAvatar);
 	}
 	
@@ -52,13 +53,27 @@ public class GhostManager
 		return null;
 	}
 	
-	public void updateGhostAvatar(UUID id, Vector3f position)
+	public void updateGhostAvatar(UUID id, Vector3f position, Matrix4f rotation)
 	{	GhostAvatar ghostAvatar = findAvatar(id);
+		System.out.println("Updating ghost " + id + " to position " + position + " with new rotation.");
 		if (ghostAvatar != null)
-		{	ghostAvatar.setPosition(position);
+		{	ghostAvatar.setLocalLocation(position);       
+			ghostAvatar.setLocalRotation(rotation);       
 		}
 		else
 		{	System.out.println("tried to update ghost avatar position, but unable to find ghost in list");
+		}
+		if (ghostAvatar != null) {
+			System.out.println("GhostAvatar FOUND, updating...");
+		} else {
+			System.out.println("Could NOT find GhostAvatar with ID: " + id);
+		}
+	}
+
+	public void setGhostHealth(UUID id, float health) {
+		GhostAvatar ghost = findAvatar(id);
+		if (ghost != null) {
+			ghost.setHealth(health);  // updates and rescales health bar
 		}
 	}
 }

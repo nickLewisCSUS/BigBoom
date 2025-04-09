@@ -20,6 +20,7 @@ import java.net.UnknownHostException;
 import org.joml.*;
 
 import net.java.games.input.*;
+import net.java.games.input.Component.Identifier;
 import net.java.games.input.Component.Identifier.*;
 import tage.networking.IGameConnection.ProtocolType;
 import tage.physics.*;
@@ -39,10 +40,12 @@ public class MyGame extends VariableFrameRateGame
 	private Matrix4f initialTranslation, initialRotation, initialScale;
 	private double startTime, prevTime, elapsedTime, amt;
 
-	private GameObject tor, avatar, x, y, z, terrain, maze, speedBoost;
-	private ObjShape torS, ghostS, dolS, linxS, linyS, linzS, terrainShape, mazeShape, speedBoostShape;
-	private TextureImage doltx, ghostT, terrainHeightMap, terrainTexture, mazeHeightMap, mazeTexture, speedBoostTexture;
+
+	private GameObject avatar, x, y, z, playerHealthBar, shield, terrain, maze, speedBoost;
+	private ObjShape ghostS, dolS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS;
+	private TextureImage doltx, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT;
 	private Light light;
+
 
 	private String serverAddress;
 	private int serverPort;
@@ -58,6 +61,9 @@ public class MyGame extends VariableFrameRateGame
 	private Vector3f nextPosition = null;
 	private boolean terrainFollowMode = true;
     private float[] vals = new float[16];
+	private boolean showHealthBar = true;
+	private float currentHealth = 100.0f;
+	private float maxHealth = 100f;
 
 
 	public MyGame(String serverAddress, int serverPort, String protocol)
@@ -80,26 +86,29 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void loadShapes()
-	{	torS = new Torus(0.5f, 0.2f, 48);
-		ghostS = new Sphere();
+	{	ghostS = new Sphere();
 		dolS = new ImportedModel("dolphinHighPoly.obj");
+		shieldS = new ImportedModel("sheildmodel.obj");
 		linxS = new Line(new Vector3f(0f,0f,0f), new Vector3f(3f,0f,0f));
 		linyS = new Line(new Vector3f(0f,0f,0f), new Vector3f(0f,3f,0f));
 		linzS = new Line(new Vector3f(0f,0f,0f), new Vector3f(0f,0f,-3f));
-		terrainShape = new TerrainPlane(1024);
-		mazeShape = new TerrainPlane(1024);
-		speedBoostShape = new ImportedModel("speedboost.obj");
+		terrainS = new TerrainPlane(1024);
+		mazeS = new TerrainPlane(1024);
+		speedBoostS = new ImportedModel("speedboost.obj");
+		playerHealthBarS = new Cube();
 	}
 
 	@Override
 	public void loadTextures()
 	{	doltx = new TextureImage("Dolphin_HighPolyUV.png");
+		shieldT = new TextureImage("sheild.jpg");
 		ghostT = new TextureImage("redDolphin.jpg");
 		terrainHeightMap = new TextureImage("terrain_height.png");
-		terrainTexture = new TextureImage("terrain_texture1.png");
+		terrainT = new TextureImage("terrain_texture1.png");
 		mazeHeightMap = new TextureImage("maze.png");
-		mazeTexture = new TextureImage("metal.jpg");
-		speedBoostTexture = new TextureImage("speedBoostTx.png");
+		mazeT = new TextureImage("metal.jpg");
+		speedBoostT = new TextureImage("speedBoostTx.png");
+		playerHealthBarT = new TextureImage("red.png");
 	}
 
 	@Override
@@ -115,7 +124,7 @@ public class MyGame extends VariableFrameRateGame
 		lastValidPosition = avatar.getWorldLocation();
 
 		// build speed powerup
-		speedBoost = new GameObject(GameObject.root(), speedBoostShape, speedBoostTexture);
+		speedBoost = new GameObject(GameObject.root(), speedBoostS, speedBoostT);
 		initialTranslation = (new Matrix4f()).translation(0f,0f,-1f);
 		speedBoost.setLocalTranslation(initialTranslation);
 		initialRotation = (new Matrix4f()).rotationY((float)java.lang.Math.toRadians(135.0f));
@@ -123,13 +132,15 @@ public class MyGame extends VariableFrameRateGame
 		initialScale = (new Matrix4f()).scaling(0.25f);
 		speedBoost.setLocalScale(initialScale);
 
-		// build torus along X axis
-		tor = new GameObject(GameObject.root(), torS);
-		initialTranslation = (new Matrix4f()).translation(1,0,0);
-		tor.setLocalTranslation(initialTranslation);
-		initialScale = (new Matrix4f()).scaling(0.25f);
-		tor.setLocalScale(initialScale);
-
+		// build shield upgrade object
+		shield = new GameObject(GameObject.root(), shieldS, shieldT);
+		initialTranslation = (new Matrix4f()).translation(1f,0f,1f);
+		shield.setLocalTranslation(initialTranslation);
+		initialRotation = (new Matrix4f()).rotationY((float)java.lang.Math.toRadians(135.0f));
+		shield.setLocalRotation(initialRotation);
+		initialScale = (new Matrix4f()).scaling(0.1f, 0.1f, 0.1f);
+		shield.setLocalScale(initialScale);
+		
 		// add X,Y,-Z axes
 		x = new GameObject(GameObject.root(), linxS);
 		y = new GameObject(GameObject.root(), linyS);
@@ -137,6 +148,8 @@ public class MyGame extends VariableFrameRateGame
 		(x.getRenderStates()).setColor(new Vector3f(1f,0f,0f));
 		(y.getRenderStates()).setColor(new Vector3f(0f,1f,0f));
 		(z.getRenderStates()).setColor(new Vector3f(0f,0f,1f));
+
+		playerHealthBar = new GameObject(avatar, playerHealthBarS, playerHealthBarT);
 	}
 
 	@Override
@@ -160,22 +173,14 @@ public class MyGame extends VariableFrameRateGame
 		// ----------------- INPUTS SECTION -----------------------------
 		im = engine.getInputManager();
 
-		// build some action objects for doing things in response to user input
-		FwdAction fwdAction = new FwdAction(this, protClient);
-		TurnAction turnAction = new TurnAction(this);
-
-		// attach the action objects to keyboard and gamepad components
-		im.associateActionWithAllGamepads(
-			net.java.games.input.Component.Identifier.Button._1,
-			fwdAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
-		im.associateActionWithAllGamepads(
-			net.java.games.input.Component.Identifier.Axis.X,
-			turnAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
-
 		setupNetworking();
+		setupInputActions(); 
 	}
 
 	public GameObject getAvatar() { return avatar; }
+	public GameObject getTerrain() { return terrain; }
+	public GameObject getMaze() { return maze; }
+	public boolean isTerrainFollowMode() { return terrainFollowMode; }
 
 	@Override
 	public void update()
@@ -197,6 +202,22 @@ public class MyGame extends VariableFrameRateGame
 		Vector3f hud2Color = new Vector3f(1,1,1);
 		(engine.getHUDmanager()).setHUD1(dispStr1, hud1Color, 15, 15);
 		(engine.getHUDmanager()).setHUD2(dispStr2, hud2Color, 500, 15);
+
+		if (showHealthBar) {
+			playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 0.45f, 0f));
+			float healthRatio = currentHealth / maxHealth;
+			float baseLength = 0.25f;
+			playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.0005f, 0.001f));
+		} else {
+			playerHealthBar.setLocalScale(new Matrix4f().scaling(0f)); // Hide it safely
+		}
+	
+		im.update((float)elapsedTime);
+		processNetworking((float)elapsedTime);;
+
+		// Inputs and networking
+		im.update((float)elapsedTime);
+		processNetworking((float)elapsedTime);
 
 		// update inputs and camera
 		im.update((float)elapsedTime);
@@ -220,12 +241,19 @@ public class MyGame extends VariableFrameRateGame
 				} else {
 					avatar.setLocalLocation(nextPosition);
 				}
-				protClient.sendMoveMessage(avatar.getWorldLocation());
+				protClient.sendMoveMessage(avatar.getWorldLocation(), avatar.getWorldRotation());
 			}
 			moveDirection = MovementDirection.NONE;
 			nextPosition = null;
 		}
-		processNetworking((float)elapsedTime);
+
+		// Update health bar position and scale
+		playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 0.4f, 0f));
+		float healthRatio = currentHealth / maxHealth;
+		float baseLength = 0.25f;
+		playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.001f, 0.001f));
+		playerHealthBar.getRenderStates().setColor(new Vector3f(1f, 0f, 0f));
+
 	}
 
 	private void positionCameraBehindAvatar()
@@ -248,52 +276,18 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void keyPressed(KeyEvent e)
-	{	Vector3f oldPos = avatar.getWorldLocation();
-		Matrix4f oldRotation = avatar.getWorldRotation();
-		
-		switch (e.getKeyCode())
-		{	case KeyEvent.VK_W:
-			{	Vector4f fwdDirection = new Vector4f(0f, 0f, 1f, 1f).mul(oldRotation);
-				fwdDirection.mul(0.05f);
-				nextPosition = oldPos.add(fwdDirection.x(), fwdDirection.y(), fwdDirection.z());
-				moveDirection = MovementDirection.FORWARD;
+	{	switch (e.getKeyCode())
+		{
+			case KeyEvent.VK_H:
+			{
+				showHealthBar = !showHealthBar;
 				break;
 			}
-			case KeyEvent.VK_S:
-			{	Vector4f fwdDirection = new Vector4f(0f,0f,1f,1f).mul(oldRotation);
-				fwdDirection.mul(-0.05f);
-				nextPosition = oldPos.add(fwdDirection.x(), fwdDirection.y(), fwdDirection.z());
-				moveDirection = MovementDirection.BACKWARD;
-				break;
-			}
-			case KeyEvent.VK_D:
-			{	Vector4f oldUp = new Vector4f(0f,1f,0f,1f).mul(oldRotation);
-				Matrix4f rotAroundAvatarUp = new Matrix4f().rotation(-.01f, new Vector3f(oldUp.x(), oldUp.y(), oldUp.z()));
-				Matrix4f newRotation = oldRotation;
-				newRotation.mul(rotAroundAvatarUp);
-				avatar.setLocalRotation(newRotation);
-				break;
-			}
-			case KeyEvent.VK_A:
-			{	Vector4f oldUp = new Vector4f(0f,1f,0f,1f).mul(oldRotation);
-				Matrix4f rotAroundAvatarUp = new Matrix4f().rotation(.01f, new Vector3f(oldUp.x(), oldUp.y(), oldUp.z()));
-				Matrix4f newRotation = oldRotation;
-				newRotation.mul(rotAroundAvatarUp);
-				avatar.setLocalRotation(newRotation);
-				break;
-			}
-			case KeyEvent.VK_UP:
+			case KeyEvent.VK_K: // test damage with 'K' key
 			{	
-				Vector3f right = avatar.getWorldRightVector();
-				Matrix4f rotation = new Matrix4f().rotate(.01f, right.x(), right.y(), right.z());
-				avatar.setLocalRotation(rotation.mul(avatar.getLocalRotation()));
-				break;
-			}
-			case KeyEvent.VK_DOWN:
-			{	
-				Vector3f right = avatar.getWorldRightVector();
-				Matrix4f rotation = new Matrix4f().rotate(-.01f, right.x(), right.y(), right.z());
-				avatar.setLocalRotation(rotation.mul(avatar.getLocalRotation()));
+				currentHealth -= 10;
+				if (currentHealth < 0) currentHealth = 0;
+				protClient.sendHealthUpdate(currentHealth);
 				break;
 			}
 			case KeyEvent.VK_F:
@@ -301,14 +295,61 @@ public class MyGame extends VariableFrameRateGame
 				terrainFollowMode = !terrainFollowMode;
 				if (!terrainFollowMode) {
 					avatar.setLocalLocation(new Vector3f(0, 50, 0));
-					avatar.lookAt(new Vector3f(0,0,0));
 					System.out.println("Free flight mode enabled.");
-				} else {
+				} else {	
+					avatar.setLocalLocation(new Vector3f(3,0,-3));
+					avatar.lookAt(new Vector3f(0,0,0));
 					System.out.println("Terrain-following mode enabled.");
 				}
+				break;
+			}
+			case KeyEvent.VK_UP:
+			{
+				Vector3f right = avatar.getWorldRightVector();
+				Matrix4f rotation = new Matrix4f().rotate(.01f, right.x(), right.y(), right.z());
+				avatar.setLocalRotation(rotation.mul(avatar.getLocalRotation()));
+				break;
+			}
+			case KeyEvent.VK_DOWN:
+			{
+				Vector3f right = avatar.getWorldRightVector();
+				Matrix4f rotation = new Matrix4f().rotate(-.01f, right.x(), right.y(), right.z());
+				avatar.setLocalRotation(rotation.mul(avatar.getLocalRotation()));
+				break;
 			}
 		}
 		super.keyPressed(e);
+	}
+
+	// -------- Health Bar Section ---------
+	private class ToggleHealthBarAction extends AbstractInputAction {
+		@Override
+		public void performAction(float time, net.java.games.input.Event evt) {
+			showHealthBar = !showHealthBar;
+			System.out.println("Health bar toggled: " + (showHealthBar ? "ON" : "OFF"));
+		}
+	}
+	public ObjShape getPlayerHealthBarShape() {
+		return playerHealthBarS;
+	}
+	
+	public TextureImage getPlayerHealthBarTexture() {
+		return playerHealthBarT;
+	}
+
+	public void setupInputActions() {
+		FwdAction fwdAction = new FwdAction(this, protClient);
+		TurnAction turnAction = new TurnAction(this, protClient);
+		ToggleHealthBarAction toggleHealthBar = new ToggleHealthBarAction();
+
+		im.associateActionWithAllKeyboards(Key.W, fwdAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+		im.associateActionWithAllKeyboards(Key.S, fwdAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+		im.associateActionWithAllKeyboards(Key.A, turnAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+		im.associateActionWithAllKeyboards(Key.D, turnAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+
+		im.associateActionWithAllGamepads(Identifier.Button._1, fwdAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+		im.associateActionWithAllGamepads(Identifier.Axis.X, turnAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+		im.associateActionWithAllGamepads(Identifier.Button._2, toggleHealthBar, InputManager.INPUT_ACTION_TYPE.ON_PRESS_ONLY);
 	}
 
 	// ---------- NETWORKING SECTION ----------------
@@ -365,7 +406,7 @@ public class MyGame extends VariableFrameRateGame
 
 	private void buildTerrain() {
         float[] up = {0, 1, 0};
-        terrain = new GameObject(GameObject.root(), terrainShape, terrainTexture);
+        terrain = new GameObject(GameObject.root(), terrainS, terrainT);
         terrain.setLocalLocation(new Vector3f(0, -10, 0));
         terrain.setLocalScale(new Matrix4f().scaling(300f, 20f, 300f));
         terrain.setHeightMap(terrainHeightMap);
@@ -379,7 +420,7 @@ public class MyGame extends VariableFrameRateGame
 
     private void buildMaze() {
         float[] up = {0, 1, 0};
-        maze = new GameObject(GameObject.root(), mazeShape, mazeTexture);
+        maze = new GameObject(GameObject.root(), mazeS, mazeT);
         maze.setLocalLocation(new Vector3f(0, -11, 0));
         maze.setLocalScale(new Matrix4f().scaling(300f, 20f, 300f));
         maze.setHeightMap(mazeHeightMap);
@@ -394,8 +435,8 @@ public class MyGame extends VariableFrameRateGame
 
     private void buildAvatar() {
         avatar = new GameObject(GameObject.root(), dolS, doltx);
-        avatar.setLocalLocation(new Vector3f(-1, 0, 0));
-        avatar.setLocalRotation(new Matrix4f().rotationY((float)Math.toRadians(135)));
+		avatar.setLocalLocation(new Vector3f(3,0,-3));
+		avatar.lookAt(new Vector3f(0,0,0));
 		
         double[] transform = toDoubleArray(avatar.getLocalTranslation().get(vals));
         PhysicsObject avatarPhys = physicsEngine.addCapsuleObject(physicsEngine.nextUID(), 1f, transform, 1f, 5f);
