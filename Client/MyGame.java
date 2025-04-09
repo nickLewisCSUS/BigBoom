@@ -23,6 +23,11 @@ import net.java.games.input.*;
 import net.java.games.input.Component.Identifier;
 import net.java.games.input.Component.Identifier.*;
 import tage.networking.IGameConnection.ProtocolType;
+import tage.physics.*;
+
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.File;
 
 public class MyGame extends VariableFrameRateGame
 {
@@ -35,9 +40,10 @@ public class MyGame extends VariableFrameRateGame
 	private Matrix4f initialTranslation, initialRotation, initialScale;
 	private double startTime, prevTime, elapsedTime, amt;
 
-	private GameObject avatar, x, y, z, playerHealthBar, sheild;
-	private ObjShape ghostS, dolS, linxS, linyS, linzS, playerHealthBarS, sheildS;
-	private TextureImage doltx, ghostT, playerHealthBarT, sheildT;
+
+	private GameObject avatar, x, y, z, playerHealthBar, shield, terrain, maze, speedBoost;
+	private ObjShape ghostS, dolS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS;
+	private TextureImage doltx, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT;
 	private Light light;
 
 
@@ -47,6 +53,14 @@ public class MyGame extends VariableFrameRateGame
 	private ProtocolClient protClient;
 	private boolean isClientConnected = false;
 
+	private int battleField;
+	private PhysicsEngine physicsEngine;
+	private Vector3f lastValidPosition;
+	public enum MovementDirection { NONE, FORWARD, BACKWARD }
+	private MovementDirection moveDirection = MovementDirection.NONE;
+	private Vector3f nextPosition = null;
+	private boolean terrainFollowMode = true;
+    private float[] vals = new float[16];
 	private boolean showHealthBar = true;
 	private float currentHealth = 100.0f;
 	private float maxHealth = 100f;
@@ -74,18 +88,26 @@ public class MyGame extends VariableFrameRateGame
 	public void loadShapes()
 	{	ghostS = new Sphere();
 		dolS = new ImportedModel("dolphinHighPoly.obj");
-		sheildS = new ImportedModel("sheildmodel.obj");
+		shieldS = new ImportedModel("sheildmodel.obj");
 		linxS = new Line(new Vector3f(0f,0f,0f), new Vector3f(3f,0f,0f));
 		linyS = new Line(new Vector3f(0f,0f,0f), new Vector3f(0f,3f,0f));
 		linzS = new Line(new Vector3f(0f,0f,0f), new Vector3f(0f,0f,-3f));
+		terrainS = new TerrainPlane(1024);
+		mazeS = new TerrainPlane(1024);
+		speedBoostS = new ImportedModel("speedboost.obj");
 		playerHealthBarS = new Cube();
 	}
 
 	@Override
 	public void loadTextures()
 	{	doltx = new TextureImage("Dolphin_HighPolyUV.png");
-		sheildT = new TextureImage("sheild.jpg");
+		shieldT = new TextureImage("sheild.jpg");
 		ghostT = new TextureImage("redDolphin.jpg");
+		terrainHeightMap = new TextureImage("terrain_height.png");
+		terrainT = new TextureImage("terrain_texture1.png");
+		mazeHeightMap = new TextureImage("maze.png");
+		mazeT = new TextureImage("metal.jpg");
+		speedBoostT = new TextureImage("speedBoostTx.png");
 		playerHealthBarT = new TextureImage("red.png");
 	}
 
@@ -93,21 +115,31 @@ public class MyGame extends VariableFrameRateGame
 	public void buildObjects()
 	{	Matrix4f initialTranslation, initialRotation, initialScale;
 
-		// build dolphin avatar
-		avatar = new GameObject(GameObject.root(), dolS, doltx);
-		initialTranslation = (new Matrix4f()).translation(1f,0f,1f);
-		avatar.setLocalTranslation(initialTranslation);
-		initialRotation = (new Matrix4f()).rotationY((float)java.lang.Math.toRadians(135.0f));
-		avatar.setLocalRotation(initialRotation);
+		physicsEngine = engine.getSceneGraph().getPhysicsEngine();
+        physicsEngine.initSystem();
+        buildTerrain();
+        buildMaze();
+        buildAvatar();
 
-		// build sheild upgrade object
-		sheild = new GameObject(GameObject.root(), sheildS, sheildT);
-		initialTranslation = (new Matrix4f()).translation(5f,0f,1f);
-		avatar.setLocalTranslation(initialTranslation);
+		lastValidPosition = avatar.getWorldLocation();
+
+		// build speed powerup
+		speedBoost = new GameObject(GameObject.root(), speedBoostS, speedBoostT);
+		initialTranslation = (new Matrix4f()).translation(0f,0f,-1f);
+		speedBoost.setLocalTranslation(initialTranslation);
 		initialRotation = (new Matrix4f()).rotationY((float)java.lang.Math.toRadians(135.0f));
-		avatar.setLocalRotation(initialRotation);
+		speedBoost.setLocalRotation(initialRotation);
+		initialScale = (new Matrix4f()).scaling(0.25f);
+		speedBoost.setLocalScale(initialScale);
+
+		// build shield upgrade object
+		shield = new GameObject(GameObject.root(), shieldS, shieldT);
+		initialTranslation = (new Matrix4f()).translation(1f,0f,1f);
+		shield.setLocalTranslation(initialTranslation);
+		initialRotation = (new Matrix4f()).rotationY((float)java.lang.Math.toRadians(135.0f));
+		shield.setLocalRotation(initialRotation);
 		initialScale = (new Matrix4f()).scaling(0.1f, 0.1f, 0.1f);
-		sheild.setLocalScale(initialScale);
+		shield.setLocalScale(initialScale);
 		
 		// add X,Y,-Z axes
 		x = new GameObject(GameObject.root(), linxS);
@@ -146,6 +178,9 @@ public class MyGame extends VariableFrameRateGame
 	}
 
 	public GameObject getAvatar() { return avatar; }
+	public GameObject getTerrain() { return terrain; }
+	public GameObject getMaze() { return maze; }
+	public boolean isTerrainFollowMode() { return terrainFollowMode; }
 
 	@Override
 	public void update()
@@ -187,6 +222,30 @@ public class MyGame extends VariableFrameRateGame
 		// update inputs and camera
 		im.update((float)elapsedTime);
 		positionCameraBehindAvatar();
+        physicsEngine.update(0.016f); // 60Hz step
+		if (terrainFollowMode) {
+		updateAvatarHeight();
+        updateAvatarPhysics();
+		}
+
+		if (moveDirection != MovementDirection.NONE && nextPosition != null) {
+			float terrainHeight = terrain.getHeight(nextPosition.x(), nextPosition.z());
+			float mazeHeight = maze.getHeight(nextPosition.x(), nextPosition.z());
+
+			if (mazeHeight >= 1.0f) {
+				System.out.println("Blocked by wall at " + nextPosition.x() + ", " + nextPosition.z());
+			} else {
+				if (terrainFollowMode) {
+					Vector3f adjustedPos = new Vector3f(nextPosition.x(), terrainHeight - 9f, nextPosition.z());
+					avatar.setLocalLocation(adjustedPos);
+				} else {
+					avatar.setLocalLocation(nextPosition);
+				}
+				protClient.sendMoveMessage(avatar.getWorldLocation(), avatar.getWorldRotation());
+			}
+			moveDirection = MovementDirection.NONE;
+			nextPosition = null;
+		}
 
 		// Update health bar position and scale
 		playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 0.4f, 0f));
@@ -194,10 +253,6 @@ public class MyGame extends VariableFrameRateGame
 		float baseLength = 0.25f;
 		playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.001f, 0.001f));
 		playerHealthBar.getRenderStates().setColor(new Vector3f(1f, 0f, 0f));
-
-		// Update input and networking
-		im.update((float)elapsedTime);
-		processNetworking((float)elapsedTime);
 
 	}
 
@@ -229,10 +284,39 @@ public class MyGame extends VariableFrameRateGame
 				break;
 			}
 			case KeyEvent.VK_K: // test damage with 'K' key
+			{	
 				currentHealth -= 10;
 				if (currentHealth < 0) currentHealth = 0;
 				protClient.sendHealthUpdate(currentHealth);
 				break;
+			}
+			case KeyEvent.VK_F:
+			{	
+				terrainFollowMode = !terrainFollowMode;
+				if (!terrainFollowMode) {
+					avatar.setLocalLocation(new Vector3f(0, 50, 0));
+					System.out.println("Free flight mode enabled.");
+				} else {	
+					avatar.setLocalLocation(new Vector3f(3,0,-3));
+					avatar.lookAt(new Vector3f(0,0,0));
+					System.out.println("Terrain-following mode enabled.");
+				}
+				break;
+			}
+			case KeyEvent.VK_UP:
+			{
+				Vector3f right = avatar.getWorldRightVector();
+				Matrix4f rotation = new Matrix4f().rotate(.01f, right.x(), right.y(), right.z());
+				avatar.setLocalRotation(rotation.mul(avatar.getLocalRotation()));
+				break;
+			}
+			case KeyEvent.VK_DOWN:
+			{
+				Vector3f right = avatar.getWorldRightVector();
+				Matrix4f rotation = new Matrix4f().rotate(-.01f, right.x(), right.y(), right.z());
+				avatar.setLocalRotation(rotation.mul(avatar.getLocalRotation()));
+				break;
+			}
 		}
 		super.keyPressed(e);
 	}
@@ -312,4 +396,83 @@ public class MyGame extends VariableFrameRateGame
 			}
 		}
 	}
+
+	@Override
+	public void loadSkyBoxes() {
+		battleField = engine.getSceneGraph().loadCubeMap("battleField");
+		(engine.getSceneGraph()).setActiveSkyBoxTexture(battleField);
+		engine.getSceneGraph().setSkyBoxEnabled(true);
+	}
+
+	private void buildTerrain() {
+        float[] up = {0, 1, 0};
+        terrain = new GameObject(GameObject.root(), terrainS, terrainT);
+        terrain.setLocalLocation(new Vector3f(0, -10, 0));
+        terrain.setLocalScale(new Matrix4f().scaling(300f, 20f, 300f));
+        terrain.setHeightMap(terrainHeightMap);
+        terrain.getRenderStates().setTiling(1);
+
+        Matrix4f trans = new Matrix4f(terrain.getLocalTranslation());
+        double[] transform = toDoubleArray(trans.get(vals));
+        PhysicsObject plane = physicsEngine.addStaticPlaneObject(physicsEngine.nextUID(), transform, up, 0f);
+        terrain.setPhysicsObject(plane);
+    }
+
+    private void buildMaze() {
+        float[] up = {0, 1, 0};
+        maze = new GameObject(GameObject.root(), mazeS, mazeT);
+        maze.setLocalLocation(new Vector3f(0, -11, 0));
+        maze.setLocalScale(new Matrix4f().scaling(300f, 20f, 300f));
+        maze.setHeightMap(mazeHeightMap);
+        maze.getRenderStates().setTiling(1);
+		maze.getRenderStates().setTileFactor(1024);
+
+        Matrix4f trans = new Matrix4f(maze.getLocalTranslation());
+        double[] transform = toDoubleArray(trans.get(vals));
+        PhysicsObject plane = physicsEngine.addStaticPlaneObject(physicsEngine.nextUID(), transform, up, 0f);
+        maze.setPhysicsObject(plane);
+    }
+
+    private void buildAvatar() {
+        avatar = new GameObject(GameObject.root(), dolS, doltx);
+		avatar.setLocalLocation(new Vector3f(3,0,-3));
+		avatar.lookAt(new Vector3f(0,0,0));
+		
+        double[] transform = toDoubleArray(avatar.getLocalTranslation().get(vals));
+        PhysicsObject avatarPhys = physicsEngine.addCapsuleObject(physicsEngine.nextUID(), 1f, transform, 1f, 5f);
+        avatar.setPhysicsObject(avatarPhys);
+    }
+
+	private void updateAvatarHeight() {
+		Vector3f loc = avatar.getWorldLocation();
+		float height = terrain.getHeight(loc.x(), loc.z());
+		Vector3f corrected = new Vector3f(loc.x(), height - 9f, loc.z());
+		avatar.setLocalLocation(corrected);
+		
+		// Update physics position
+		Matrix4f translation = avatar.getLocalTranslation();
+		double[] transform = toDoubleArray(translation.get(vals));
+		avatar.getPhysicsObject().setTransform(transform);
+	}
+
+	
+    private void updateAvatarPhysics() {
+        Matrix4f translation = new Matrix4f().set(toFloatArray(avatar.getPhysicsObject().getTransform()));
+        avatar.setLocalTranslation(translation);
+    }
+
+    public double[] toDoubleArray(float[] arr) {
+		double[] result = new double[arr.length];
+		for (int i = 0; i < arr.length; i++) {
+			result[i] = (double) arr[i];
+		}
+		return result;
+    }
+
+    public float[] toFloatArray(double[] arr) {
+        float[] result = new float[arr.length];
+        for (int i = 0; i < arr.length; i++) result[i] = (float) arr[i];
+        return result;
+    }
+
 }

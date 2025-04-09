@@ -46,6 +46,19 @@ public class FwdAction extends AbstractInputAction
 
 		fwdDirection.mul(movementAmount* time);
 		newPosition = oldPosition.add(fwdDirection.x(), fwdDirection.y(), fwdDirection.z());
+
+		// Terrain following and wall collision logic
+		if (game.isTerrainFollowMode()) {
+			float mazeHeight = game.getMaze().getHeight(newPosition.x(), newPosition.z());
+
+			if (mazeHeight >= 1.0f) {
+				// Wall Collision
+				System.out.println("Blocked by wall at " + newPosition.x() + ", " + newPosition.z());
+				return;
+			}
+			float terrainHeight = game.getTerrain().getHeight(newPosition.x(), newPosition.z());	
+			newPosition.y = terrainHeight - 9f;
+		}
 		av.setLocalLocation(newPosition);
 
 		if (protClient != null)
