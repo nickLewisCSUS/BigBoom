@@ -4,6 +4,7 @@ import tage.*;
 import tage.shapes.*;
 import tage.input.*;
 import tage.input.action.*;
+import tage.audio.*;
 
 import java.lang.Math;
 import java.awt.*;
@@ -27,7 +28,6 @@ import tage.physics.*;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.File;
 
 public class MyGame extends VariableFrameRateGame
 {
@@ -41,10 +41,13 @@ public class MyGame extends VariableFrameRateGame
 	private double startTime, prevTime, elapsedTime, amt;
 
 
-	private GameObject avatar, x, y, z, playerHealthBar, shield, terrain, maze, speedBoost;
-	private ObjShape ghostS, dolS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS;
-	private TextureImage doltx, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT;
+	private GameObject avatar, x, y, z, playerHealthBar, shield, terrain, maze, speedBoost, mine;
+	private ObjShape ghostS, dolS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, mineS;
+	private TextureImage doltx, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, mineT;
 	private Light light;
+
+	private IAudioManager audioMgr;
+	private Sound mineSound;
 
 
 	private String serverAddress;
@@ -87,7 +90,7 @@ public class MyGame extends VariableFrameRateGame
 	@Override
 	public void loadShapes()
 	{	ghostS = new Sphere();
-		dolS = new ImportedModel("dolphinHighPoly.obj");
+		dolS = new ImportedModel("tigerTank.obj");
 		shieldS = new ImportedModel("sheildmodel.obj");
 		linxS = new Line(new Vector3f(0f,0f,0f), new Vector3f(3f,0f,0f));
 		linyS = new Line(new Vector3f(0f,0f,0f), new Vector3f(0f,3f,0f));
@@ -96,6 +99,7 @@ public class MyGame extends VariableFrameRateGame
 		mazeS = new TerrainPlane(1024);
 		speedBoostS = new ImportedModel("speedboost.obj");
 		playerHealthBarS = new Cube();
+		mineS = new ImportedModel("mine.obj");
 	}
 
 	@Override
@@ -109,6 +113,7 @@ public class MyGame extends VariableFrameRateGame
 		mazeT = new TextureImage("metal.jpg");
 		speedBoostT = new TextureImage("speedBoostTx.png");
 		playerHealthBarT = new TextureImage("red.png");
+		mineT = new TextureImage("mineTexture.jpg");
 	}
 
 	@Override
@@ -140,6 +145,13 @@ public class MyGame extends VariableFrameRateGame
 		shield.setLocalRotation(initialRotation);
 		initialScale = (new Matrix4f()).scaling(0.1f, 0.1f, 0.1f);
 		shield.setLocalScale(initialScale);
+
+		// build mine object
+		mine = new GameObject(GameObject.root(), mineS, mineT);
+		initialTranslation = (new Matrix4f()).translation(2f,0f,2f);
+		mine.setLocalTranslation(initialTranslation);
+		initialScale = (new Matrix4f()).scaling(0.03f, 0.1f, 0.03f);
+		mine.setLocalScale(initialScale); 
 		
 		// add X,Y,-Z axes
 		x = new GameObject(GameObject.root(), linxS);
@@ -161,6 +173,21 @@ public class MyGame extends VariableFrameRateGame
 		(engine.getSceneGraph()).addLight(light);
 	}
 
+	public void loadSounds()
+	{ 
+		AudioResource resource1;
+		audioMgr = engine.getAudioManager();
+		resource1 = audioMgr.createAudioResource("mineBeeping.wav", AudioResourceType.AUDIO_SAMPLE);
+
+		mineSound = new Sound(resource1, SoundType.SOUND_EFFECT, 100, true);
+		mineSound.initialize(audioMgr);
+
+		
+		mineSound.setMaxDistance(50.0f);
+		mineSound.setMinDistance(2.0f);
+		mineSound.setRollOff(2.0f);
+	}
+
 	@Override
 	public void initializeGame()
 	{	prevTime = System.currentTimeMillis();
@@ -175,12 +202,24 @@ public class MyGame extends VariableFrameRateGame
 
 		setupNetworking();
 		setupInputActions(); 
+
+		// initial sound settings
+		mineSound.setLocation(mine.getWorldLocation());
+		setEarParameters();
+		mineSound.play();
+		
 	}
 
 	public GameObject getAvatar() { return avatar; }
 	public GameObject getTerrain() { return terrain; }
 	public GameObject getMaze() { return maze; }
 	public boolean isTerrainFollowMode() { return terrainFollowMode; }
+
+	public void setEarParameters()
+	{ Camera camera = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
+		audioMgr.getEar().setLocation(avatar.getWorldLocation());
+		audioMgr.getEar().setOrientation(camera.getN(), new Vector3f(0.0f, 1.0f, 0.0f));
+	}
 
 	@Override
 	public void update()
@@ -224,9 +263,34 @@ public class MyGame extends VariableFrameRateGame
 		positionCameraBehindAvatar();
         physicsEngine.update(0.016f); // 60Hz step
 		if (terrainFollowMode) {
-		updateAvatarHeight();
-        updateAvatarPhysics();
+			updateAvatarHeight();
+			updateAvatarPhysics();
 		}
+
+		// update sound
+		setEarParameters();
+		mineSound.setLocation(mine.getWorldLocation());
+		
+
+		Vector3f earLoc = engine.getAudioManager().getEar().getLocation();
+		Vector3f mineLoc = mine.getWorldLocation();
+		float distance = mineLoc.distance(earLoc);
+
+		// Manually fade volume
+		float maxDistance = 15.0f;
+		float minDistance = 2.0f;
+		int volume = 100;
+
+		if (distance > maxDistance) {
+			volume = 0;
+		} else if (distance < minDistance) {
+			volume = 100;
+		} else {
+			float percent = (maxDistance - distance) / (maxDistance - minDistance);
+    		volume = (int)(percent * 100);
+		}
+
+		mineSound.setVolume(volume);
 
 		if (moveDirection != MovementDirection.NONE && nextPosition != null) {
 			float terrainHeight = terrain.getHeight(nextPosition.x(), nextPosition.z());
@@ -273,6 +337,7 @@ public class MyGame extends VariableFrameRateGame
 		c.setV(new Vector3f(v.x(),v.y(),v.z()));
 		c.setN(new Vector3f(n.x(),n.y(),n.z()));
 	}
+
 
 	@Override
 	public void keyPressed(KeyEvent e)
@@ -446,7 +511,7 @@ public class MyGame extends VariableFrameRateGame
 	private void updateAvatarHeight() {
 		Vector3f loc = avatar.getWorldLocation();
 		float height = terrain.getHeight(loc.x(), loc.z());
-		Vector3f corrected = new Vector3f(loc.x(), height - 9f, loc.z());
+		Vector3f corrected = new Vector3f(loc.x(), height - 10f, loc.z());
 		avatar.setLocalLocation(corrected);
 		
 		// Update physics position
