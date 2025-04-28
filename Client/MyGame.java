@@ -48,6 +48,9 @@ public class MyGame extends VariableFrameRateGame
 	private TextureImage tankT, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, turretT;
 	private Light light;
 
+	private boolean turretShouldRotate = false;
+	private TurretAIController turretAI;
+
 	private CameraOrbit3D orbitController;
 
 	private IAudioManager audioMgr;
@@ -92,7 +95,7 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void loadShapes()
-	{	turretS = new ImportedModel("turret.obj");
+	{	turretS = new ImportedModel("turret1.obj");
 		//turretS.loadAnimation("scanning", "turret.rka");
 		ghostS = new Sphere();
 		tankS = new ImportedModel("tiger2.obj");
@@ -216,6 +219,8 @@ public class MyGame extends VariableFrameRateGame
 		turretSound.setLocation(turret.getWorldLocation());
 		setEarParameters();
 		turretSound.play();
+
+		turretAI = new TurretAIController(this);
 	}
 
 	public GameObject getAvatar() { return avatar; }
@@ -272,17 +277,24 @@ public class MyGame extends VariableFrameRateGame
 		im.update((float)elapsedTime);
 		processNetworking((float)elapsedTime);
 
+		turretAI.update((float) elapsedTime);
+
 		// update inputs and camera
 		im.update((float)elapsedTime);
         physicsEngine.update(0.016f); // 60Hz step
 		if (terrainFollowMode) {
-		updateAvatarHeight();
-        updateAvatarPhysics();
+			updateAvatarHeight();
+			updateAvatarPhysics();
+			updateTurretHeight();
 		}
 
 		// update sound
 		setEarParameters();
 		turretSound.setLocation(turret.getWorldLocation());
+
+		if (turretShouldRotate) {
+			rotateTurretTowardsPlayer();
+		}
 		
 
 		Vector3f earLoc = engine.getAudioManager().getEar().getLocation();
@@ -465,6 +477,10 @@ public class MyGame extends VariableFrameRateGame
 			protClient.processPackets();
 	}
 
+	public void setTurretShouldRotate(boolean shouldRotate) {
+		turretShouldRotate = shouldRotate;
+	}
+
 	public Vector3f getPlayerPosition() { return avatar.getWorldLocation(); }
 
 	public void setIsConnected(boolean value) { this.isClientConnected = value; }
@@ -536,6 +552,17 @@ public class MyGame extends VariableFrameRateGame
 		avatar.getPhysicsObject().setTransform(transform);
 	}
 
+	private void updateTurretHeight() {
+		Vector3f loc = turret.getWorldLocation();
+		float height = terrain.getHeight(loc.x(), loc.z());
+		Vector3f corrected = new Vector3f(loc.x(), height - 10f, loc.z());
+		turret.setLocalLocation(corrected);
+	}
+	
+	public GameObject getTurret() {
+		return turret;
+	}
+
 	
     private void updateAvatarPhysics() {
         Matrix4f translation = new Matrix4f().set(toFloatArray(avatar.getPhysicsObject().getTransform()));
@@ -555,5 +582,31 @@ public class MyGame extends VariableFrameRateGame
         for (int i = 0; i < arr.length; i++) result[i] = (float) arr[i];
         return result;
     }
+
+	private void rotateTurretTowardsPlayer() {
+		Vector3f turretPos = turret.getWorldLocation();
+		Vector3f avatarPos = avatar.getWorldLocation();
+	
+		Vector3f direction = new Vector3f(
+			avatarPos.x() - turretPos.x(),
+			0,
+			avatarPos.z() - turretPos.z()
+		);
+	
+		direction.normalize();
+	
+		float angle = (float) Math.atan2(direction.x(), direction.z());
+	
+		// Keep the turret's current translation and scale
+		Matrix4f currentTranslation = turret.getLocalTranslation();
+		Matrix4f currentScale = turret.getLocalScale();
+	
+		// Set only the rotation
+		Matrix4f rotation = new Matrix4f().rotationY(angle);
+	
+		turret.setLocalRotation(rotation);
+		turret.setLocalTranslation(currentTranslation);
+		turret.setLocalScale(currentScale);
+	}
 
 }
