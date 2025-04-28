@@ -27,7 +27,6 @@ import tage.physics.*;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.File;
 
 public class MyGame extends VariableFrameRateGame
 {
@@ -41,9 +40,9 @@ public class MyGame extends VariableFrameRateGame
 	private double startTime, prevTime, elapsedTime, amt;
 
 
-	private GameObject avatar, x, y, z, playerHealthBar, shield, terrain, maze, speedBoost;
-	private ObjShape ghostS, dolS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS;
-	private TextureImage doltx, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT;
+	private GameObject avatar, x, y, z, playerHealthBar, shield, terrain, maze, speedBoost, turret;
+	private ObjShape ghostS, tankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, turretS;
+	private TextureImage tankT, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, turretT;
 	private Light light;
 
 
@@ -87,7 +86,7 @@ public class MyGame extends VariableFrameRateGame
 	@Override
 	public void loadShapes()
 	{	ghostS = new Sphere();
-		dolS = new ImportedModel("dolphinHighPoly.obj");
+		tankS = new ImportedModel("tiger2.obj");
 		shieldS = new ImportedModel("sheildmodel.obj");
 		linxS = new Line(new Vector3f(0f,0f,0f), new Vector3f(3f,0f,0f));
 		linyS = new Line(new Vector3f(0f,0f,0f), new Vector3f(0f,3f,0f));
@@ -96,11 +95,12 @@ public class MyGame extends VariableFrameRateGame
 		mazeS = new TerrainPlane(1024);
 		speedBoostS = new ImportedModel("speedboost.obj");
 		playerHealthBarS = new Cube();
+		turretS = new ImportedModel("turret.obj");
 	}
 
 	@Override
 	public void loadTextures()
-	{	doltx = new TextureImage("Dolphin_HighPolyUV.png");
+	{	tankT = new TextureImage("red.png");
 		shieldT = new TextureImage("sheild.jpg");
 		ghostT = new TextureImage("redDolphin.jpg");
 		terrainHeightMap = new TextureImage("terrain_height.png");
@@ -109,6 +109,7 @@ public class MyGame extends VariableFrameRateGame
 		mazeT = new TextureImage("metal.jpg");
 		speedBoostT = new TextureImage("speedBoostTx.png");
 		playerHealthBarT = new TextureImage("red.png");
+		turretT = new TextureImage("red.png");
 	}
 
 	@Override
@@ -140,6 +141,13 @@ public class MyGame extends VariableFrameRateGame
 		shield.setLocalRotation(initialRotation);
 		initialScale = (new Matrix4f()).scaling(0.1f, 0.1f, 0.1f);
 		shield.setLocalScale(initialScale);
+
+		// build turret object
+		turret = new GameObject(GameObject.root(), turretS, turretT);
+		initialTranslation = (new Matrix4f()).translation(-10f,0f,2f);
+		turret.setLocalTranslation(initialTranslation);
+		initialScale = (new Matrix4f()).scaling(0.5f, 0.5f, 0.5f);
+		turret.setLocalScale(initialScale); 
 		
 		// add X,Y,-Z axes
 		x = new GameObject(GameObject.root(), linxS);
@@ -204,10 +212,10 @@ public class MyGame extends VariableFrameRateGame
 		(engine.getHUDmanager()).setHUD2(dispStr2, hud2Color, 500, 15);
 
 		if (showHealthBar) {
-			playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 0.45f, 0f));
+			playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 2.5f, 0f));
 			float healthRatio = currentHealth / maxHealth;
-			float baseLength = 0.25f;
-			playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.0005f, 0.001f));
+			float baseLength = 3.0f;
+			playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.1f, 0.1f));
 		} else {
 			playerHealthBar.setLocalScale(new Matrix4f().scaling(0f)); // Hide it safely
 		}
@@ -434,7 +442,7 @@ public class MyGame extends VariableFrameRateGame
     }
 
     private void buildAvatar() {
-        avatar = new GameObject(GameObject.root(), dolS, doltx);
+        avatar = new GameObject(GameObject.root(), tankS, tankT);
 		avatar.setLocalLocation(new Vector3f(3,0,-3));
 		avatar.lookAt(new Vector3f(0,0,0));
 		
