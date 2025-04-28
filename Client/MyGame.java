@@ -102,6 +102,7 @@ public class MyGame extends VariableFrameRateGame
 		speedBoostS = new ImportedModel("speedboost.obj");
 		playerHealthBarS = new Cube();
 		mineS = new ImportedModel("mine.obj");
+		turretS = new ImportedModel("basicCube.obj");
 	}
 
 	@Override
@@ -116,6 +117,7 @@ public class MyGame extends VariableFrameRateGame
 		speedBoostT = new TextureImage("speedBoostTx.png");
 		playerHealthBarT = new TextureImage("red.png");
 		mineT = new TextureImage("mineTexture.jpg");
+		turretT = new TextureImage("mineTexture.jpg");
 	}
 
 	@Override
@@ -150,10 +152,18 @@ public class MyGame extends VariableFrameRateGame
 
 		// build mine object
 		mine = new GameObject(GameObject.root(), mineS, mineT);
-		initialTranslation = (new Matrix4f()).translation(20f,0f,2f);
+		initialTranslation = (new Matrix4f()).translation(-20f,0f,2f);
 		mine.setLocalTranslation(initialTranslation);
 		initialScale = (new Matrix4f()).scaling(0.03f, 0.1f, 0.03f);
 		mine.setLocalScale(initialScale); 
+
+		// build turret object
+		 turret = new GameObject(GameObject.root(), turretS, turretT);
+		 initialTranslation = (new Matrix4f()).translation(0f,0f,2f);
+		 turret.setLocalTranslation(initialTranslation);
+		 initialScale = (new Matrix4f()).scaling(0.1f, 0.1f, 0.1f);
+		 turret.setLocalScale(initialScale); 
+
 		
 		// add X,Y,-Z axes
 		x = new GameObject(GameObject.root(), linxS);
@@ -173,6 +183,7 @@ public class MyGame extends VariableFrameRateGame
 		light = new Light();
 		light.setLocation(new Vector3f(0f, 5f, 0f));
 		(engine.getSceneGraph()).addLight(light);
+
 	}
 
 	public void loadSounds()
@@ -195,6 +206,8 @@ public class MyGame extends VariableFrameRateGame
 	{	prevTime = System.currentTimeMillis();
 		startTime = System.currentTimeMillis();
 		(engine.getRenderSystem()).setWindowDimensions(1900,1000);
+
+		(engine.getRenderSystem()).addViewport("MAIN", 0f, 0f, 1f, 1f);
 
 		// ----------------- initialize camera ----------------
 		im = engine.getInputManager();
@@ -260,9 +273,6 @@ public class MyGame extends VariableFrameRateGame
 		} else {
 			playerHealthBar.setLocalScale(new Matrix4f().scaling(0f)); // Hide it safely
 		}
-	
-		im.update((float)elapsedTime);
-		processNetworking((float)elapsedTime);;
 
 		// Inputs and networking
 		im.update((float)elapsedTime);
