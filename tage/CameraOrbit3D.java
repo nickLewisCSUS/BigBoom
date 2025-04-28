@@ -38,8 +38,8 @@ public class CameraOrbit3D {
         camera = cam;
         avatar = av;
         cameraAzimuth = 0.0f;
-        cameraElevation = 5.0f;
-        cameraRadius = 2.0f;
+        cameraElevation = 12.0f;
+        cameraRadius = 10.0f;
         setupInputs(gpName, suffix);
         updateCameraPosition();
     }

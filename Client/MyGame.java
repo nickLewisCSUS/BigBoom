@@ -42,9 +42,9 @@ public class MyGame extends VariableFrameRateGame
 	private double startTime, prevTime, elapsedTime, amt;
 
 
-	private GameObject avatar, x, y, z, playerHealthBar, shield, terrain, maze, speedBoost, mine;
-	private ObjShape ghostS, dolS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, mineS;
-	private TextureImage doltx, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, mineT;
+	private GameObject avatar, x, y, z, playerHealthBar, shield, terrain, maze, speedBoost, mine, turret;
+	private ObjShape ghostS, tankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, mineS, turretS;
+	private TextureImage tankT, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, mineT, turretT;
 	private Light light;
 
 	private IAudioManager audioMgr;
@@ -92,7 +92,7 @@ public class MyGame extends VariableFrameRateGame
 	@Override
 	public void loadShapes()
 	{	ghostS = new Sphere();
-		dolS = new ImportedModel("tigerTank.obj");
+		tankS = new ImportedModel("tiger2.obj");
 		shieldS = new ImportedModel("sheildmodel.obj");
 		linxS = new Line(new Vector3f(0f,0f,0f), new Vector3f(3f,0f,0f));
 		linyS = new Line(new Vector3f(0f,0f,0f), new Vector3f(0f,3f,0f));
@@ -106,7 +106,7 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void loadTextures()
-	{	doltx = new TextureImage("Dolphin_HighPolyUV.png");
+	{	tankT = new TextureImage("mineTexture.jpg");
 		shieldT = new TextureImage("sheild.jpg");
 		ghostT = new TextureImage("redDolphin.jpg");
 		terrainHeightMap = new TextureImage("terrain_height.png");
@@ -252,11 +252,11 @@ public class MyGame extends VariableFrameRateGame
 		if (showHealthBar) {
 			Vector3f avatarPos = avatar.getWorldLocation();
 			playerHealthBar.setLocalTranslation(
-				(new Matrix4f()).translation(-1.0f, 4.5f, 9.0f) 
+				(new Matrix4f()).translation(0.0f, 2.5f, 0.0f) 
 			);
 			float healthRatio = currentHealth / maxHealth;
-			float baseLength = 5.0f;
-			playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.5f, 0.5f));
+			float baseLength = 3.0f;
+			playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.1f, 0.1f));
 		} else {
 			playerHealthBar.setLocalScale(new Matrix4f().scaling(0f)); // Hide it safely
 		}
@@ -502,7 +502,7 @@ public class MyGame extends VariableFrameRateGame
     }
 
     private void buildAvatar() {
-        avatar = new GameObject(GameObject.root(), dolS, doltx);
+        avatar = new GameObject(GameObject.root(), tankS, tankT);
 		avatar.setLocalLocation(new Vector3f(3,0,-3));
 		avatar.lookAt(new Vector3f(0,0,0));
 		
