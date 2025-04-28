@@ -5,6 +5,7 @@ import tage.CameraOrbit3D;
 import tage.shapes.*;
 import tage.input.*;
 import tage.input.action.*;
+import tage.audio.*;
 
 import java.lang.Math;
 import java.awt.*;
@@ -42,14 +43,15 @@ public class MyGame extends VariableFrameRateGame
 
 
 	private GameObject avatar, x, y, z, playerHealthBar, shield, terrain, maze, speedBoost, turret;
-	private AnimatedShape turretS;
-	private ObjShape ghostS, tankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS;
+	// private AnimatedShape turretS;
+	private ObjShape ghostS, tankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, turretS;
 	private TextureImage tankT, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, turretT;
 	private Light light;
 
 	private CameraOrbit3D orbitController;
 
-
+	private IAudioManager audioMgr;
+	private Sound turretSound;
 
 	private String serverAddress;
 	private int serverPort;
@@ -90,8 +92,8 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void loadShapes()
-	{	turretS = new AnimatedShape("turret1.rkm", "turret.rks");
-		turretS.loadAnimation("scanning", "turret.rka");
+	{	turretS = new ImportedModel("turret.obj");
+		//turretS.loadAnimation("scanning", "turret.rka");
 		ghostS = new Sphere();
 		tankS = new ImportedModel("tiger2.obj");
 		shieldS = new ImportedModel("sheildmodel.obj");
@@ -175,6 +177,22 @@ public class MyGame extends VariableFrameRateGame
 		(engine.getSceneGraph()).addLight(light);
 	}
 
+	public void loadSounds()
+	{ 
+		AudioResource resource1;
+		audioMgr = engine.getAudioManager();
+		resource1 = audioMgr.createAudioResource("minebeeping.wav", AudioResourceType.AUDIO_SAMPLE);
+
+		turretSound = new Sound(resource1, SoundType.SOUND_EFFECT, 100, true);
+		turretSound.initialize(audioMgr);
+
+		
+		turretSound.setMaxDistance(50.0f);
+		turretSound.setMinDistance(2.0f);
+		turretSound.setRollOff(2.0f);
+	}
+
+
 	@Override
 	public void initializeGame()
 	{	prevTime = System.currentTimeMillis();
@@ -193,12 +211,24 @@ public class MyGame extends VariableFrameRateGame
 
 		setupNetworking();
 		setupInputActions(); 
+
+		// initial sound settings
+		turretSound.setLocation(turret.getWorldLocation());
+		setEarParameters();
+		turretSound.play();
 	}
 
 	public GameObject getAvatar() { return avatar; }
 	public GameObject getTerrain() { return terrain; }
 	public GameObject getMaze() { return maze; }
 	public boolean isTerrainFollowMode() { return terrainFollowMode; }
+
+	public void setEarParameters()
+	{ Camera camera = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
+		audioMgr.getEar().setLocation(avatar.getWorldLocation());
+		audioMgr.getEar().setOrientation(camera.getN(), new Vector3f(0.0f, 1.0f, 0.0f));
+	}
+
 
 	@Override
 	public void update()
@@ -209,6 +239,7 @@ public class MyGame extends VariableFrameRateGame
 
 		orbitController.updateCameraPosition();
 
+		//turretS.updateAnimation();
 		
 		// build and set HUD
 		int elapsTimeSec = Math.round((float)(System.currentTimeMillis()-startTime)/1000.0f);
@@ -224,7 +255,6 @@ public class MyGame extends VariableFrameRateGame
 		(engine.getHUDmanager()).setHUD1(dispStr1, hud1Color, 15, 15);
 		(engine.getHUDmanager()).setHUD2(dispStr2, hud2Color, 500, 15);
 
-		turretS.updateAnimation();
 
 		if (showHealthBar) {
 			playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 2.5f, 0f));
@@ -249,6 +279,31 @@ public class MyGame extends VariableFrameRateGame
 		updateAvatarHeight();
         updateAvatarPhysics();
 		}
+
+		// update sound
+		setEarParameters();
+		turretSound.setLocation(turret.getWorldLocation());
+		
+
+		Vector3f earLoc = engine.getAudioManager().getEar().getLocation();
+		Vector3f mineLoc = turret.getWorldLocation();
+		float distance = mineLoc.distance(earLoc);
+
+		// Manually fade volume
+		float maxDistance = 15.0f;
+		float minDistance = 2.0f;
+		int volume = 100;
+
+		if (distance > maxDistance) {
+			volume = 0;
+		} else if (distance < minDistance) {
+			volume = 100;
+		} else {
+			float percent = (maxDistance - distance) / (maxDistance - minDistance);
+    		volume = (int)(percent * 100);
+		}
+
+		turretSound.setVolume(volume);
 
 		if (moveDirection != MovementDirection.NONE && nextPosition != null) {
 			float terrainHeight = terrain.getHeight(nextPosition.x(), nextPosition.z());
@@ -293,17 +348,17 @@ public class MyGame extends VariableFrameRateGame
 	public void keyPressed(KeyEvent e)
 	{	switch (e.getKeyCode())
 		{
-			case KeyEvent.VK_W:
-			{
-				turretS.stopAnimation();
-				turretS.playAnimation("scanning", 0.5f, AnimatedShape.EndType.LOOP, 0);
-				break;
-			}
-			case KeyEvent.VK_S:
-			{ 	
-				turretS.stopAnimation();
-				break;
-			}
+			// case KeyEvent.VK_W:
+			// {
+			// 	turretS.stopAnimation();
+			// 	turretS.playAnimation("scanning", 0.5f, AnimatedShape.EndType.LOOP, 0);
+			// 	break;
+			// }
+			// case KeyEvent.VK_S:
+			// { 	
+			// 	turretS.stopAnimation();
+			// 	break;
+			// }
 			case KeyEvent.VK_H:
 			{
 				showHealthBar = !showHealthBar;
