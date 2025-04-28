@@ -1,6 +1,7 @@
 package Client;
 
 import tage.*;
+import tage.CameraOrbit3D;
 import tage.shapes.*;
 import tage.input.*;
 import tage.input.action.*;
@@ -41,9 +42,13 @@ public class MyGame extends VariableFrameRateGame
 
 
 	private GameObject avatar, x, y, z, playerHealthBar, shield, terrain, maze, speedBoost, turret;
-	private ObjShape ghostS, tankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, turretS;
+	private AnimatedShape turretS;
+	private ObjShape ghostS, tankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS;
 	private TextureImage tankT, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, turretT;
 	private Light light;
+
+	private CameraOrbit3D orbitController;
+
 
 
 	private String serverAddress;
@@ -85,7 +90,9 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void loadShapes()
-	{	ghostS = new Sphere();
+	{	turretS = new AnimatedShape("turret1.rkm", "turret.rks");
+		turretS.loadAnimation("scanning", "turret.rka");
+		ghostS = new Sphere();
 		tankS = new ImportedModel("tiger2.obj");
 		shieldS = new ImportedModel("sheildmodel.obj");
 		linxS = new Line(new Vector3f(0f,0f,0f), new Vector3f(3f,0f,0f));
@@ -95,7 +102,6 @@ public class MyGame extends VariableFrameRateGame
 		mazeS = new TerrainPlane(1024);
 		speedBoostS = new ImportedModel("speedboost.obj");
 		playerHealthBarS = new Cube();
-		turretS = new ImportedModel("turret.obj");
 	}
 
 	@Override
@@ -176,7 +182,11 @@ public class MyGame extends VariableFrameRateGame
 		(engine.getRenderSystem()).setWindowDimensions(1900,1000);
 
 		// ----------------- initialize camera ----------------
-		positionCameraBehindAvatar();
+		im = engine.getInputManager();
+		String gpName = im.getFirstGamepadName();
+		Camera c = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
+		orbitController = new CameraOrbit3D(c, avatar, gpName, "LEFT", engine);
+
 
 		// ----------------- INPUTS SECTION -----------------------------
 		im = engine.getInputManager();
@@ -196,6 +206,9 @@ public class MyGame extends VariableFrameRateGame
 		prevTime = System.currentTimeMillis();
 		amt = elapsedTime * 0.03;
 		Camera c = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
+
+		orbitController.updateCameraPosition();
+
 		
 		// build and set HUD
 		int elapsTimeSec = Math.round((float)(System.currentTimeMillis()-startTime)/1000.0f);
@@ -210,6 +223,8 @@ public class MyGame extends VariableFrameRateGame
 		Vector3f hud2Color = new Vector3f(1,1,1);
 		(engine.getHUDmanager()).setHUD1(dispStr1, hud1Color, 15, 15);
 		(engine.getHUDmanager()).setHUD2(dispStr2, hud2Color, 500, 15);
+
+		turretS.updateAnimation();
 
 		if (showHealthBar) {
 			playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 2.5f, 0f));
@@ -229,7 +244,6 @@ public class MyGame extends VariableFrameRateGame
 
 		// update inputs and camera
 		im.update((float)elapsedTime);
-		positionCameraBehindAvatar();
         physicsEngine.update(0.016f); // 60Hz step
 		if (terrainFollowMode) {
 		updateAvatarHeight();
@@ -255,37 +269,41 @@ public class MyGame extends VariableFrameRateGame
 			nextPosition = null;
 		}
 
-		// Update health bar position and scale
-		playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 0.4f, 0f));
-		float healthRatio = currentHealth / maxHealth;
-		float baseLength = 0.25f;
-		playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.001f, 0.001f));
-		playerHealthBar.getRenderStates().setColor(new Vector3f(1f, 0f, 0f));
-
 	}
 
-	private void positionCameraBehindAvatar()
-	{	Vector4f u = new Vector4f(-1f,0f,0f,1f);
-		Vector4f v = new Vector4f(0f,1f,0f,1f);
-		Vector4f n = new Vector4f(0f,0f,1f,1f);
-		u.mul(avatar.getWorldRotation());
-		v.mul(avatar.getWorldRotation());
-		n.mul(avatar.getWorldRotation());
-		Matrix4f w = avatar.getWorldTranslation();
-		Vector3f position = new Vector3f(w.m30(), w.m31(), w.m32());
-		position.add(-n.x()*2f, -n.y()*2f, -n.z()*2f);
-		position.add(v.x()*.75f, v.y()*.75f, v.z()*.75f);
-		Camera c = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
-		c.setLocation(position);
-		c.setU(new Vector3f(u.x(),u.y(),u.z()));
-		c.setV(new Vector3f(v.x(),v.y(),v.z()));
-		c.setN(new Vector3f(n.x(),n.y(),n.z()));
-	}
+	// private void positionCameraBehindAvatar()
+	// {	Vector4f u = new Vector4f(-1f,0f,0f,1f);
+	// 	Vector4f v = new Vector4f(0f,1f,0f,1f);
+	// 	Vector4f n = new Vector4f(0f,0f,1f,1f);
+	// 	u.mul(avatar.getWorldRotation());
+	// 	v.mul(avatar.getWorldRotation());
+	// 	n.mul(avatar.getWorldRotation());
+	// 	Matrix4f w = avatar.getWorldTranslation();
+	// 	Vector3f position = new Vector3f(w.m30(), w.m31(), w.m32());
+	// 	position.add(-n.x()*2f, -n.y()*2f, -n.z()*2f);
+	// 	position.add(v.x()*.75f, v.y()*.75f, v.z()*.75f);
+	// 	Camera c = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
+	// 	c.setLocation(position);
+	// 	c.setU(new Vector3f(u.x(),u.y(),u.z()));
+	// 	c.setV(new Vector3f(v.x(),v.y(),v.z()));
+	// 	c.setN(new Vector3f(n.x(),n.y(),n.z()));
+	// }
 
 	@Override
 	public void keyPressed(KeyEvent e)
 	{	switch (e.getKeyCode())
 		{
+			case KeyEvent.VK_W:
+			{
+				turretS.stopAnimation();
+				turretS.playAnimation("scanning", 0.5f, AnimatedShape.EndType.LOOP, 0);
+				break;
+			}
+			case KeyEvent.VK_S:
+			{ 	
+				turretS.stopAnimation();
+				break;
+			}
 			case KeyEvent.VK_H:
 			{
 				showHealthBar = !showHealthBar;
@@ -355,8 +373,8 @@ public class MyGame extends VariableFrameRateGame
 		im.associateActionWithAllKeyboards(Key.A, turnAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 		im.associateActionWithAllKeyboards(Key.D, turnAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 
-		im.associateActionWithAllGamepads(Identifier.Button._1, fwdAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
-		im.associateActionWithAllGamepads(Identifier.Axis.X, turnAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+		// im.associateActionWithAllGamepads(Identifier.Button._1, fwdAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+		// im.associateActionWithAllGamepads(Identifier.Axis.X, turnAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 		im.associateActionWithAllGamepads(Identifier.Button._2, toggleHealthBar, InputManager.INPUT_ACTION_TYPE.ON_PRESS_ONLY);
 	}
 
