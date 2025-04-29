@@ -43,7 +43,6 @@ public class MyGame extends VariableFrameRateGame
 
 
 	private GameObject avatar, x, y, z, playerHealthBar, shield, terrain, maze, speedBoost, turret;
-	// private AnimatedShape turretS;
 	private ObjShape ghostS, tankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, turretS;
 	private TextureImage tankT, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, turretT;
 	private Light light;
@@ -111,7 +110,7 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void loadTextures()
-	{	tankT = new TextureImage("red.png");
+	{	tankT = new TextureImage("tanktext.png");
 		shieldT = new TextureImage("sheild.jpg");
 		ghostT = new TextureImage("redDolphin.jpg");
 		terrainHeightMap = new TextureImage("terrain_height.png");
@@ -244,7 +243,6 @@ public class MyGame extends VariableFrameRateGame
 
 		orbitController.updateCameraPosition();
 
-		//turretS.updateAnimation();
 		
 		// build and set HUD
 		int elapsTimeSec = Math.round((float)(System.currentTimeMillis()-startTime)/1000.0f);
@@ -338,40 +336,11 @@ public class MyGame extends VariableFrameRateGame
 
 	}
 
-	// private void positionCameraBehindAvatar()
-	// {	Vector4f u = new Vector4f(-1f,0f,0f,1f);
-	// 	Vector4f v = new Vector4f(0f,1f,0f,1f);
-	// 	Vector4f n = new Vector4f(0f,0f,1f,1f);
-	// 	u.mul(avatar.getWorldRotation());
-	// 	v.mul(avatar.getWorldRotation());
-	// 	n.mul(avatar.getWorldRotation());
-	// 	Matrix4f w = avatar.getWorldTranslation();
-	// 	Vector3f position = new Vector3f(w.m30(), w.m31(), w.m32());
-	// 	position.add(-n.x()*2f, -n.y()*2f, -n.z()*2f);
-	// 	position.add(v.x()*.75f, v.y()*.75f, v.z()*.75f);
-	// 	Camera c = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
-	// 	c.setLocation(position);
-	// 	c.setU(new Vector3f(u.x(),u.y(),u.z()));
-	// 	c.setV(new Vector3f(v.x(),v.y(),v.z()));
-	// 	c.setN(new Vector3f(n.x(),n.y(),n.z()));
-	// }
 
 	@Override
 	public void keyPressed(KeyEvent e)
 	{	switch (e.getKeyCode())
-		{
-			// case KeyEvent.VK_W:
-			// {
-			// 	turretS.stopAnimation();
-			// 	turretS.playAnimation("scanning", 0.5f, AnimatedShape.EndType.LOOP, 0);
-			// 	break;
-			// }
-			// case KeyEvent.VK_S:
-			// { 	
-			// 	turretS.stopAnimation();
-			// 	break;
-			// }
-			case KeyEvent.VK_H:
+		{	case KeyEvent.VK_H:
 			{
 				showHealthBar = !showHealthBar;
 				break;
