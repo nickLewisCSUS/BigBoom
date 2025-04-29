@@ -1,9 +1,11 @@
 package Client;
 
 import tage.*;
+import tage.CameraOrbit3D;
 import tage.shapes.*;
 import tage.input.*;
 import tage.input.action.*;
+import tage.audio.*;
 
 import java.lang.Math;
 import java.awt.*;
@@ -27,7 +29,6 @@ import tage.physics.*;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.File;
 
 public class MyGame extends VariableFrameRateGame
 {
@@ -41,11 +42,18 @@ public class MyGame extends VariableFrameRateGame
 	private double startTime, prevTime, elapsedTime, amt;
 
 
-	private GameObject avatar, x, y, z, playerHealthBar, shield, terrain, maze, speedBoost;
-	private ObjShape ghostS, dolS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS;
-	private TextureImage doltx, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT;
+	private GameObject avatar, x, y, z, playerHealthBar, shield, terrain, maze, speedBoost, turret;
+	private ObjShape ghostS, tankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, turretS;
+	private TextureImage tankT, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, turretT;
 	private Light light;
 
+	private boolean turretShouldRotate = false;
+	private TurretAIController turretAI;
+
+	private CameraOrbit3D orbitController;
+
+	private IAudioManager audioMgr;
+	private Sound turretSound;
 
 	private String serverAddress;
 	private int serverPort;
@@ -86,8 +94,10 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void loadShapes()
-	{	ghostS = new Sphere();
-		dolS = new ImportedModel("dolphinHighPoly.obj");
+	{	turretS = new ImportedModel("turret1.obj");
+		//turretS.loadAnimation("scanning", "turret.rka");
+		ghostS = new Sphere();
+		tankS = new ImportedModel("tiger2.obj");
 		shieldS = new ImportedModel("sheildmodel.obj");
 		linxS = new Line(new Vector3f(0f,0f,0f), new Vector3f(3f,0f,0f));
 		linyS = new Line(new Vector3f(0f,0f,0f), new Vector3f(0f,3f,0f));
@@ -100,7 +110,7 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void loadTextures()
-	{	doltx = new TextureImage("Dolphin_HighPolyUV.png");
+	{	tankT = new TextureImage("tanktext.png");
 		shieldT = new TextureImage("sheild.jpg");
 		ghostT = new TextureImage("redDolphin.jpg");
 		terrainHeightMap = new TextureImage("terrain_height.png");
@@ -109,6 +119,7 @@ public class MyGame extends VariableFrameRateGame
 		mazeT = new TextureImage("metal.jpg");
 		speedBoostT = new TextureImage("speedBoostTx.png");
 		playerHealthBarT = new TextureImage("red.png");
+		turretT = new TextureImage("red.png");
 	}
 
 	@Override
@@ -140,6 +151,13 @@ public class MyGame extends VariableFrameRateGame
 		shield.setLocalRotation(initialRotation);
 		initialScale = (new Matrix4f()).scaling(0.1f, 0.1f, 0.1f);
 		shield.setLocalScale(initialScale);
+
+		// build turret object
+		turret = new GameObject(GameObject.root(), turretS, turretT);
+		initialTranslation = (new Matrix4f()).translation(-10f,0f,2f);
+		turret.setLocalTranslation(initialTranslation);
+		initialScale = (new Matrix4f()).scaling(0.5f, 0.5f, 0.5f);
+		turret.setLocalScale(initialScale); 
 		
 		// add X,Y,-Z axes
 		x = new GameObject(GameObject.root(), linxS);
@@ -161,6 +179,22 @@ public class MyGame extends VariableFrameRateGame
 		(engine.getSceneGraph()).addLight(light);
 	}
 
+	public void loadSounds()
+	{ 
+		AudioResource resource1;
+		audioMgr = engine.getAudioManager();
+		resource1 = audioMgr.createAudioResource("minebeeping.wav", AudioResourceType.AUDIO_SAMPLE);
+
+		turretSound = new Sound(resource1, SoundType.SOUND_EFFECT, 100, true);
+		turretSound.initialize(audioMgr);
+
+		
+		turretSound.setMaxDistance(50.0f);
+		turretSound.setMinDistance(2.0f);
+		turretSound.setRollOff(2.0f);
+	}
+
+
 	@Override
 	public void initializeGame()
 	{	prevTime = System.currentTimeMillis();
@@ -168,13 +202,24 @@ public class MyGame extends VariableFrameRateGame
 		(engine.getRenderSystem()).setWindowDimensions(1900,1000);
 
 		// ----------------- initialize camera ----------------
-		positionCameraBehindAvatar();
+		im = engine.getInputManager();
+		String gpName = im.getFirstGamepadName();
+		Camera c = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
+		orbitController = new CameraOrbit3D(c, avatar, gpName, "LEFT", engine);
+
 
 		// ----------------- INPUTS SECTION -----------------------------
 		im = engine.getInputManager();
 
 		setupNetworking();
 		setupInputActions(); 
+
+		// initial sound settings
+		turretSound.setLocation(turret.getWorldLocation());
+		setEarParameters();
+		turretSound.play();
+
+		turretAI = new TurretAIController(this);
 	}
 
 	public GameObject getAvatar() { return avatar; }
@@ -182,12 +227,22 @@ public class MyGame extends VariableFrameRateGame
 	public GameObject getMaze() { return maze; }
 	public boolean isTerrainFollowMode() { return terrainFollowMode; }
 
+	public void setEarParameters()
+	{ Camera camera = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
+		audioMgr.getEar().setLocation(avatar.getWorldLocation());
+		audioMgr.getEar().setOrientation(camera.getN(), new Vector3f(0.0f, 1.0f, 0.0f));
+	}
+
+
 	@Override
 	public void update()
 	{	elapsedTime = System.currentTimeMillis() - prevTime;
 		prevTime = System.currentTimeMillis();
 		amt = elapsedTime * 0.03;
 		Camera c = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
+
+		orbitController.updateCameraPosition();
+
 		
 		// build and set HUD
 		int elapsTimeSec = Math.round((float)(System.currentTimeMillis()-startTime)/1000.0f);
@@ -203,11 +258,12 @@ public class MyGame extends VariableFrameRateGame
 		(engine.getHUDmanager()).setHUD1(dispStr1, hud1Color, 15, 15);
 		(engine.getHUDmanager()).setHUD2(dispStr2, hud2Color, 500, 15);
 
+
 		if (showHealthBar) {
-			playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 0.45f, 0f));
+			playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 2.5f, 0f));
 			float healthRatio = currentHealth / maxHealth;
-			float baseLength = 0.25f;
-			playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.0005f, 0.001f));
+			float baseLength = 3.0f;
+			playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.1f, 0.1f));
 		} else {
 			playerHealthBar.setLocalScale(new Matrix4f().scaling(0f)); // Hide it safely
 		}
@@ -219,14 +275,45 @@ public class MyGame extends VariableFrameRateGame
 		im.update((float)elapsedTime);
 		processNetworking((float)elapsedTime);
 
+		turretAI.update((float) elapsedTime);
+
 		// update inputs and camera
 		im.update((float)elapsedTime);
-		positionCameraBehindAvatar();
         physicsEngine.update(0.016f); // 60Hz step
 		if (terrainFollowMode) {
-		updateAvatarHeight();
-        updateAvatarPhysics();
+			updateAvatarHeight();
+			updateAvatarPhysics();
+			updateTurretHeight();
 		}
+
+		// update sound
+		setEarParameters();
+		turretSound.setLocation(turret.getWorldLocation());
+
+		if (turretShouldRotate) {
+			rotateTurretTowardsPlayer();
+		}
+		
+
+		Vector3f earLoc = engine.getAudioManager().getEar().getLocation();
+		Vector3f mineLoc = turret.getWorldLocation();
+		float distance = mineLoc.distance(earLoc);
+
+		// Manually fade volume
+		float maxDistance = 15.0f;
+		float minDistance = 2.0f;
+		int volume = 100;
+
+		if (distance > maxDistance) {
+			volume = 0;
+		} else if (distance < minDistance) {
+			volume = 100;
+		} else {
+			float percent = (maxDistance - distance) / (maxDistance - minDistance);
+    		volume = (int)(percent * 100);
+		}
+
+		turretSound.setVolume(volume);
 
 		if (moveDirection != MovementDirection.NONE && nextPosition != null) {
 			float terrainHeight = terrain.getHeight(nextPosition.x(), nextPosition.z());
@@ -247,38 +334,13 @@ public class MyGame extends VariableFrameRateGame
 			nextPosition = null;
 		}
 
-		// Update health bar position and scale
-		playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 0.4f, 0f));
-		float healthRatio = currentHealth / maxHealth;
-		float baseLength = 0.25f;
-		playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.001f, 0.001f));
-		playerHealthBar.getRenderStates().setColor(new Vector3f(1f, 0f, 0f));
-
 	}
 
-	private void positionCameraBehindAvatar()
-	{	Vector4f u = new Vector4f(-1f,0f,0f,1f);
-		Vector4f v = new Vector4f(0f,1f,0f,1f);
-		Vector4f n = new Vector4f(0f,0f,1f,1f);
-		u.mul(avatar.getWorldRotation());
-		v.mul(avatar.getWorldRotation());
-		n.mul(avatar.getWorldRotation());
-		Matrix4f w = avatar.getWorldTranslation();
-		Vector3f position = new Vector3f(w.m30(), w.m31(), w.m32());
-		position.add(-n.x()*2f, -n.y()*2f, -n.z()*2f);
-		position.add(v.x()*.75f, v.y()*.75f, v.z()*.75f);
-		Camera c = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
-		c.setLocation(position);
-		c.setU(new Vector3f(u.x(),u.y(),u.z()));
-		c.setV(new Vector3f(v.x(),v.y(),v.z()));
-		c.setN(new Vector3f(n.x(),n.y(),n.z()));
-	}
 
 	@Override
 	public void keyPressed(KeyEvent e)
 	{	switch (e.getKeyCode())
-		{
-			case KeyEvent.VK_H:
+		{	case KeyEvent.VK_H:
 			{
 				showHealthBar = !showHealthBar;
 				break;
@@ -347,8 +409,8 @@ public class MyGame extends VariableFrameRateGame
 		im.associateActionWithAllKeyboards(Key.A, turnAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 		im.associateActionWithAllKeyboards(Key.D, turnAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 
-		im.associateActionWithAllGamepads(Identifier.Button._1, fwdAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
-		im.associateActionWithAllGamepads(Identifier.Axis.X, turnAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+		// im.associateActionWithAllGamepads(Identifier.Button._1, fwdAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+		// im.associateActionWithAllGamepads(Identifier.Axis.X, turnAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 		im.associateActionWithAllGamepads(Identifier.Button._2, toggleHealthBar, InputManager.INPUT_ACTION_TYPE.ON_PRESS_ONLY);
 	}
 
@@ -382,6 +444,10 @@ public class MyGame extends VariableFrameRateGame
 	{	// Process packets received by the client from the server
 		if (protClient != null)
 			protClient.processPackets();
+	}
+
+	public void setTurretShouldRotate(boolean shouldRotate) {
+		turretShouldRotate = shouldRotate;
 	}
 
 	public Vector3f getPlayerPosition() { return avatar.getWorldLocation(); }
@@ -434,7 +500,7 @@ public class MyGame extends VariableFrameRateGame
     }
 
     private void buildAvatar() {
-        avatar = new GameObject(GameObject.root(), dolS, doltx);
+        avatar = new GameObject(GameObject.root(), tankS, tankT);
 		avatar.setLocalLocation(new Vector3f(3,0,-3));
 		avatar.lookAt(new Vector3f(0,0,0));
 		
@@ -453,6 +519,17 @@ public class MyGame extends VariableFrameRateGame
 		Matrix4f translation = avatar.getLocalTranslation();
 		double[] transform = toDoubleArray(translation.get(vals));
 		avatar.getPhysicsObject().setTransform(transform);
+	}
+
+	private void updateTurretHeight() {
+		Vector3f loc = turret.getWorldLocation();
+		float height = terrain.getHeight(loc.x(), loc.z());
+		Vector3f corrected = new Vector3f(loc.x(), height - 10f, loc.z());
+		turret.setLocalLocation(corrected);
+	}
+	
+	public GameObject getTurret() {
+		return turret;
 	}
 
 	
@@ -474,5 +551,31 @@ public class MyGame extends VariableFrameRateGame
         for (int i = 0; i < arr.length; i++) result[i] = (float) arr[i];
         return result;
     }
+
+	private void rotateTurretTowardsPlayer() {
+		Vector3f turretPos = turret.getWorldLocation();
+		Vector3f avatarPos = avatar.getWorldLocation();
+	
+		Vector3f direction = new Vector3f(
+			avatarPos.x() - turretPos.x(),
+			0,
+			avatarPos.z() - turretPos.z()
+		);
+	
+		direction.normalize();
+	
+		float angle = (float) Math.atan2(direction.x(), direction.z());
+	
+		// Keep the turret's current translation and scale
+		Matrix4f currentTranslation = turret.getLocalTranslation();
+		Matrix4f currentScale = turret.getLocalScale();
+	
+		// Set only the rotation
+		Matrix4f rotation = new Matrix4f().rotationY(angle);
+	
+		turret.setLocalRotation(rotation);
+		turret.setLocalTranslation(currentTranslation);
+		turret.setLocalScale(currentScale);
+	}
 
 }

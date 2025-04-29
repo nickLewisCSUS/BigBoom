@@ -11,4 +11,4 @@ package tage.ai.behaviortrees;
  * 		<a href="https://github.com/aigamedev/btsk">Behavior Trees Starter Kit</a>
  *
  */
-public enum BTStatus { BH_INVALID, BH_SUCCESS, BH_FAILURE, BH_RUNNING, BH_ABORTED }
+public enum BTStatus { BH_INVALID, BH_SUCCESS, BH_FAILURE, BH_RUNNING, BH_ABORTED, BT_FAILURE }
