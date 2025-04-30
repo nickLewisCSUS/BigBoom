@@ -455,4 +455,5 @@ public class GameObject
 			Engine.getEngine().getRenderSystem().addTexture((TextureImage)this);
 		}
 	}
+
 }

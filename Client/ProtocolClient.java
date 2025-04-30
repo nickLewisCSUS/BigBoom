@@ -38,9 +38,16 @@ public class ProtocolClient extends GameConnectionClient
 			// Handle JOIN message
 			// Format: (join,success) or (join,failure)
 			if(messageTokens[0].compareTo("join") == 0)
-			{	if(messageTokens[1].compareTo("success") == 0)
-				{	System.out.println("join success confirmed");
+			{	if(messageTokens[1].compareTo("first") == 0)
+				{	System.out.println("Join success - You are the power-up authority!");
 					game.setIsConnected(true);
+					game.setPowerUpAuthority(true);
+					sendCreateMessage(game.getPlayerPosition());
+				}
+				else if (messageTokens[1].compareTo("success") == 0) 
+				{	System.out.println("Join success - You are a regular client.");
+					game.setIsConnected(true);
+					game.setPowerUpAuthority(false);
 					sendCreateMessage(game.getPlayerPosition());
 				}
 				if(messageTokens[1].compareTo("failure") == 0)
@@ -141,7 +148,98 @@ public class ProtocolClient extends GameConnectionClient
 
 				
 				ghostManager.updateGhostAvatar(ghostID, ghostPosition, rot);
-	}	}	}
+			}	
+
+			// Handle POWERUP message
+			// Format: (powerup,remoteID,boostID,x,y,z)
+			if (messageTokens[0].compareTo("powerup") == 0) {
+				UUID remoteID = UUID.fromString(messageTokens[1]);
+				int boostID = Integer.parseInt(messageTokens[2]);
+				float x = Float.parseFloat(messageTokens[3]);
+				float y = Float.parseFloat(messageTokens[4]);
+				float z = Float.parseFloat(messageTokens[5]);
+
+				for (PowerUp boost : game.getPowerUps()) {
+					if (boost.getBoostID() == boostID) {
+						boost.getBoostObject().setLocalLocation(new Vector3f(x,y,z));
+						Matrix4f combined = new Matrix4f();
+						combined.identity();
+						combined.mul(boost.getBoostObject().getLocalRotation());
+						combined.setTranslation(new Vector3f(x,y,z));
+						double[] tempTransform = game.toDoubleArray(combined.get(new float[16]));
+						boost.getBoostPhysics().setTransform(tempTransform);
+						break;
+					}
+				}
+			}
+
+			if (messageTokens[0].compareTo("syncPowerUps") == 0)
+			{
+				UUID requestingClientID = UUID.fromString(messageTokens[1]);
+				System.out.println("Got request to sync powerups for: " + requestingClientID);
+
+				// I am the authority! Send my current powerup states to the new client
+				for (PowerUp p : game.getPowerUps()) {
+					Vector3f pos = p.getBoostObject().getWorldLocation();
+					int boostID = p.getBoostID();
+					boolean active = p.isActive();
+
+					try
+					{
+						String syncMessage = "powerupSync," + requestingClientID.toString()
+							+ "," + boostID
+							+ "," + pos.x()
+							+ "," + pos.y()
+							+ "," + pos.z()
+							+ "," + (active ? "1" : "0");
+						System.out.println("Sending powerup sync: " + syncMessage);
+						sendPacket(syncMessage);
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+
+			 if (messageTokens[0].compareTo("powerupSync") == 0)
+			{
+				System.out.println("Received powerupSync message: " + strMessage);
+				UUID targetClient = UUID.fromString(messageTokens[1]);
+				System.out.println("Target client: " + targetClient + " matches? " + (!targetClient.equals(this.id)) + "This id: " + this.id);
+				if (!targetClient.equals(this.id)) {
+					// This update is not for me, ignore it.
+					return;
+				}
+				
+				int boostID = Integer.parseInt(messageTokens[2]);
+				float x = Float.parseFloat(messageTokens[3]);
+				float y = Float.parseFloat(messageTokens[4]);
+				float z = Float.parseFloat(messageTokens[5]);
+				boolean active = messageTokens[6].equals("1");
+
+				// Update the local powerup
+				for (PowerUp p : game.getPowerUps()) {
+					if (p.getBoostID() == boostID) {
+						p.getBoostObject().setLocalLocation(new Vector3f(x,y,z));
+						if (active) {
+							// Make sure it's visible
+							p.getBoostObject().setLocalLocation(new Vector3f(x,y,z));
+						} else {
+							// Hide it below ground
+							p.getBoostObject().setLocalLocation(new Vector3f(0, -999f ,0));
+						}
+
+						Matrix4f combined = new Matrix4f();
+						combined.identity();
+						combined.mul(p.getBoostObject().getLocalRotation());
+						combined.setTranslation(new Vector3f(x,y,z));
+						double[] tempTransform = game.toDoubleArray(combined.get(new float[16]));
+						p.getBoostPhysics().setTransform(tempTransform);
+
+						break;
+					}
+				}
+			}
+	}	}
 	
 	// The initial message from the game client requesting to join the 
 	// server. localId is a unique identifier for the client. Recommend 
@@ -223,6 +321,21 @@ public class ProtocolClient extends GameConnectionClient
 	public void sendHealthUpdate(float health) {
 		try {
 			String message = "health," + id.toString() + "," + health;
+			sendPacket(message);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void sendPowerUpUpdate(int boostID, Vector3f position) {
+		try {
+			String message = "powerup," + id.toString();
+			message += "," + boostID;
+			message += "," + position.x();
+			message += "," + position.y();
+			message += "," + position.z();
+
+			System.out.println("Sending POWERUP update: " + message);
 			sendPacket(message);
 		} catch (IOException e) {
 			e.printStackTrace();

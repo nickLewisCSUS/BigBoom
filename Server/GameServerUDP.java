@@ -31,11 +31,24 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 					UUID clientID = UUID.fromString(messageTokens[1]);
 					addClient(ci, clientID);
 					System.out.println("Join request received from - " + clientID.toString());
-					sendJoinedMessage(clientID, true);
-				} 
-				catch (IOException e) 
-				{	e.printStackTrace();
-			}	}
+					boolean isFirst = getClients().size() == 1;
+					System.out.println("Client size:" + (getClients().size() == 1));
+					sendJoinedMessage(clientID, isFirst);
+
+					// Tell the power-up authority to share power-up positions with this new client
+					if (getClients().size() > 1) {
+						UUID firstClient = getClients().keySet().iterator().next(); // assume first client is authority
+						try
+						{
+							sendPacket("syncPowerUps," + clientID.toString(), firstClient);
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					}
+				} catch (IOException e) {
+					e.printStackTrace();
+				}	
+			}
 			
 			// BYE -- Case where clients leaves the server
 			// Received Message Format: (bye,localId)
@@ -108,20 +121,65 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 					e.printStackTrace();
 				}
 			}
-				}	}
+
+			// POWERUP --- Case where server receives a powerup message
+			if (messageTokens[0].compareTo("powerup") == 0) {
+				UUID clientID = UUID.fromString(messageTokens[1]);
+				// Rebuild full powerup message to forward to other clients
+				StringBuilder powerupMessage = new StringBuilder("powerup," + clientID.toString());
+				for (int i = 2; i < messageTokens.length; i++) {
+					powerupMessage.append(",").append(messageTokens[i]);
+				}
+
+				System.out.println("Forwarding POWERUP from: " + clientID + " → " + powerupMessage.toString());
+				
+				try {
+					forwardPacketToAll(powerupMessage.toString(), clientID);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			// POWERUP --- Case where server receives a powerup message
+			if (messageTokens[0].compareTo("powerup") == 0) {
+				UUID clientID = UUID.fromString(messageTokens[1]);
+				// Rebuild full powerup message to forward to other clients
+				StringBuilder powerupMessage = new StringBuilder("powerup," + clientID.toString());
+				for (int i = 2; i < messageTokens.length; i++) {
+					powerupMessage.append(",").append(messageTokens[i]);
+				}
+
+				System.out.println("Forwarding POWERUP from: " + clientID + " → " + powerupMessage.toString());
+				
+				try {
+					forwardPacketToAll(powerupMessage.toString(), clientID);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+
+			if (messageTokens[0].compareTo("powerupSync") == 0) {
+				try {
+					UUID targetClient = UUID.fromString(messageTokens[1]);
+					StringBuilder msg = new StringBuilder(messageTokens[0]);
+					for (int i = 1; i < messageTokens.length; i++) {
+						msg.append(",").append(messageTokens[i]);
+					}
+					sendPacket(msg.toString(), targetClient);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
 
 	// Informs the client who just requested to join the server if their if their 
 	// request was able to be granted. 
 	// Message Format: (join,success) or (join,failure)
 	
-	public void sendJoinedMessage(UUID clientID, boolean success)
+	public void sendJoinedMessage(UUID clientID, boolean isFirst)
 	{	try 
-		{	System.out.println("trying to confirm join");
-			String message = new String("join,");
-			if(success)
-				message += "success";
-			else
-				message += "failure";
+		{	System.out.println("Confirming join to client " + clientID);
+			String message = "join," + (isFirst ? "first" : "success");
 			sendPacket(message, clientID);
 		} 
 		catch (IOException e) 
@@ -209,6 +267,21 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 		catch (IOException e) 
 		{	e.printStackTrace();
 	}	}
+
+	// Informs clients that a powerup has moved or changed position.
+	// Message Format: (powerup,remoteID,powerupID,x,y,z)
+	public void sendPowerUpMessages(UUID clientID, int powerupID, String[] position)
+	{ 	try 
+		{	String message = new String("powerup," + clientID.toString());
+			message += "," + powerupID;
+			message += "," + position[0];
+			message += "," + position[1];
+			message += "," + position[2];
+			forwardPacketToAll(message, clientID);
+	}
+	catch (IOException e) 
+	{	e.printStackTrace();
+}	}
 
 	public void sendIsNearMessage(UUID clientID) {
 		try {

@@ -28,19 +28,27 @@ public class FwdAction extends AbstractInputAction
 
 		Component.Identifier id = e.getComponent().getIdentifier();
 		float movementAmount;
+		float moveSpeed;
+
+		if (game.isBoosted()) {
+			movementAmount = 0.01f; // double speed
+			moveSpeed = 0.02f;
+		} else {
+			movementAmount = 0.001f;
+			moveSpeed = 0.01f;
+		}
 
 		
 		if (id == Component.Identifier.Key.W) {
-			movementAmount = 0.001f; // consistent per update for digital input
+			// consistent per update for digital input
 		}
 		else if (id == Component.Identifier.Key.S) {
-			movementAmount = -0.001f; // backward for digital input
+			movementAmount = -movementAmount; // backward for digital input
 		}
 		else {
 			// analog fallback (like gamepad triggers)
 			float keyValue = e.getValue();
 			if (keyValue > -0.2f && keyValue < 0.2f) return;
-			float moveSpeed = .01f;
 			movementAmount = keyValue * moveSpeed * time;
 		}
 
@@ -65,5 +73,3 @@ public class FwdAction extends AbstractInputAction
 			protClient.sendMoveMessage(av.getWorldLocation(), av.getWorldRotation());
 	}
 }
-
-
