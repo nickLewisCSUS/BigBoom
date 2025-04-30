@@ -46,8 +46,8 @@ public class MyGame extends VariableFrameRateGame
 	private double startTime, prevTime, elapsedTime, amt;
 
 	private GameObject avatar, x, y, z, playerHealthBar, shield, terrain, maze, speedBoost, turret;
-	private ObjShape ghostS, dolS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, healthBoostS, turretS;
-	private TextureImage doltx, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, healthBoostT, turretT;
+	private ObjShape ghostS, tankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, healthBoostS, turretS;
+	private TextureImage tankT, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, healthBoostT, turretT;
 
 	private Light light;
 
@@ -289,7 +289,6 @@ public class MyGame extends VariableFrameRateGame
 		buildPowerUps();
 
 		// Positon the camera
-		positionCameraBehindAvatar();
 		//(engine.getRenderSystem().getViewport("MAIN").getCamera()).setLocation(new Vector3f(3, 0, 3));
 		// Enable rendering
 		engine.enableGraphicsWorldRender();
@@ -368,9 +367,6 @@ public class MyGame extends VariableFrameRateGame
 		// Update input and networking
 		im.update((float)elapsedTime);
 		processNetworking((float)elapsedTime);
-
-		// Update the camera position
-		positionCameraBehindAvatar();
 
 		// Step physics world
         physicsEngine.update(0.016f); // 60Hz step
@@ -525,24 +521,6 @@ public class MyGame extends VariableFrameRateGame
 				}
 			}
 		}
-	}
-
-	private void positionCameraBehindAvatar()
-	{	Vector4f u = new Vector4f(-1f,0f,0f,1f);
-		Vector4f v = new Vector4f(0f,1f,0f,1f);
-		Vector4f n = new Vector4f(0f,0f,1f,1f);
-		u.mul(avatar.getWorldRotation());
-		v.mul(avatar.getWorldRotation());
-		n.mul(avatar.getWorldRotation());
-		Matrix4f w = avatar.getWorldTranslation();
-		Vector3f position = new Vector3f(w.m30(), w.m31(), w.m32());
-		position.add(-n.x()*5f, -n.y()*5f, -n.z()*5f);
-		position.add(v.x()*.75f, v.y()*.75f, v.z()*.75f);
-		Camera c = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
-		c.setLocation(position);
-		c.setU(new Vector3f(u.x(),u.y(),u.z()));
-		c.setV(new Vector3f(v.x(),v.y(),v.z()));
-		c.setN(new Vector3f(n.x(),n.y(),n.z()));
 	}
 
 	@Override
