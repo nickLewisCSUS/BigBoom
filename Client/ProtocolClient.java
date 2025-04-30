@@ -87,6 +87,16 @@ public class ProtocolClient extends GameConnectionClient
 				}
 			}
 			
+
+			if (messageTokens[0].compareTo("isnear") == 0) {
+				System.out.println("Player is near NPC (turret)");
+				((MyGame)game).setTurretShouldRotate(true);
+			}
+			
+			if (messageTokens[0].compareTo("isfar") == 0) {
+				System.out.println("Player is far from NPC (turret)");
+				((MyGame)game).setTurretShouldRotate(false);
+			}
 			// Handle WANTS_DETAILS message
 			// Format: (wsds,remoteId)
 			if (messageTokens[0].compareTo("wsds") == 0)

@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.UUID;
 
+import org.joml.Vector3f;
+
 import tage.networking.server.GameConnectionServer;
 import tage.networking.server.IClientInfo;
 
@@ -86,10 +88,25 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 				}
 			}
 			
-			// MOVE --- Case where server receives a move message
-			// Now supports full position + rotation
-			if (messageTokens[0].compareTo("move") == 0) {
+			if (messageTokens[0].compareTo("move") == 0)
+			{
 				UUID clientID = UUID.fromString(messageTokens[1]);
+				float x = Float.parseFloat(messageTokens[2]);
+				float y = Float.parseFloat(messageTokens[3]);
+				float z = Float.parseFloat(messageTokens[4]);
+
+				Vector3f playerPos = new Vector3f(x, y, z);
+				Vector3f turretPos = new Vector3f(-10f, 0f, 2f); // turret static position
+
+				if (playerPos.distance(turretPos) < 10.0f) {
+					System.out.println("Server: Player is near the turret!");
+					sendIsNearMessage(clientID);
+				}
+				else {
+					System.out.println("Server: Player is far from the turret!");
+					sendIsFarMessage(clientID); // <-- OPTIONAL if you want turret to stop
+				}
+
 				// Rebuild full move message to forward to other clients
 				StringBuilder moveMessage = new StringBuilder("move," + clientID.toString());
 				for (int i = 2; i < messageTokens.length; i++) {
@@ -265,4 +282,22 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 	catch (IOException e) 
 	{	e.printStackTrace();
 }	}
+
+	public void sendIsNearMessage(UUID clientID) {
+		try {
+			String message = "isnear," + clientID.toString();
+			sendPacket(message, clientID);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void sendIsFarMessage(UUID clientID) {
+		try {
+			String message = "isfar," + clientID.toString();
+			sendPacket(message, clientID);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 }
