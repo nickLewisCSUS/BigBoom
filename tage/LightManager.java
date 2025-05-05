@@ -107,7 +107,7 @@ public class LightManager
 	// It is called once at the beginning (from init), then whenever lights are added, removed, or changed.
 	// During rendering, updating the SSBO is done from display().
 
-	protected void loadLightArraySSBO()
+	public void loadLightArraySSBO()
 	{	int numLights = getNumLights();
 		lightArray = new float[numLights*fieldsPerLight];
 		for (int i=0; i < numLights; i++)

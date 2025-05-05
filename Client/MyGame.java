@@ -397,6 +397,10 @@ public class MyGame extends VariableFrameRateGame
 			headlight.setLocation(new Vector3f(0, -1000, 0)); 
 		}
 
+		for (GhostAvatar ghost : gm.getGhosts()) {
+			ghost.updateHeadlight();
+		}
+
 		// Step physics world
         physicsEngine.update(0.016f); // 60Hz step
 
@@ -609,7 +613,7 @@ public class MyGame extends VariableFrameRateGame
 			case KeyEvent.VK_L:
 			{
 				headlightOn = !headlightOn;
-				System.out.println("Headlight toggled: " + (headlightOn ? "ON" : "OFF"));
+				protClient.sendHeadlightState(headlightOn);
 				break;
 			}
 		}

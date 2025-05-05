@@ -107,6 +107,12 @@ public class ProtocolClient extends GameConnectionClient
 				sendDetailsForMessage(ghostID, game.getPlayerPosition());
 			}
 
+			if (messageTokens[0].compareTo("headlight") == 0) {
+				UUID ghostID = UUID.fromString(messageTokens[1]);
+				boolean lightOn = messageTokens[2].equals("1");
+				ghostManager.setGhostHeadlight(ghostID, lightOn);
+			}
+
 			// Handle HEALTH message
 			// Format: (health,remoteId,value)
 			if (messageTokens[0].compareTo("health") == 0) {
@@ -336,6 +342,14 @@ public class ProtocolClient extends GameConnectionClient
 			message += "," + position.z();
 
 			System.out.println("Sending POWERUP update: " + message);
+			sendPacket(message);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	public void sendHeadlightState(boolean isOn) {
+		try {
+			String message = "headlight," + id.toString() + "," + (isOn ? "1" : "0");
 			sendPacket(message);
 		} catch (IOException e) {
 			e.printStackTrace();

@@ -16,12 +16,16 @@ public class GhostAvatar extends GameObject
 	private GameObject ghostHealthBar;
 	private float currentHealth = 100f;
 	private float maxHealth = 100f;
+	private Light ghostHeadlight;
+	private GameObject headlightNode;
+	private Engine engine;
 	UUID uuid;
 
-	public GhostAvatar(UUID id, ObjShape s, TextureImage t, Vector3f p) 
+	public GhostAvatar(UUID id, ObjShape s, TextureImage t, Vector3f p, Engine e) 
 	{	super(GameObject.root(), s, t);
 		uuid = id;
 		setPosition(p);
+		engine = e;
 	}
 
 	public void createHealthBar(ObjShape shape, TextureImage texture) {
@@ -47,4 +51,36 @@ public class GhostAvatar extends GameObject
 	public void setPosition(Vector3f m) { setLocalLocation(m); }
 	public void setRotation(Matrix4f r) { setLocalRotation(r); }
 	public Vector3f getPosition() { return getWorldLocation(); }
+
+	public void initHeadlight() {
+		headlightNode = new GameObject(this); // child of ghost
+		headlightNode.setLocalTranslation(new Matrix4f().translation(0f, 0.3f, 0f));
+	
+		ghostHeadlight = new Light();
+		ghostHeadlight.setType(Light.LightType.SPOTLIGHT);
+		ghostHeadlight.setAmbient(0.2f, 0.2f, 0.2f);
+		ghostHeadlight.setDiffuse(1.5f, 1.5f, 1.5f);
+		ghostHeadlight.setSpecular(1.0f, 1.0f, 1.0f);
+		ghostHeadlight.setCutoffAngle(15.0f);
+		ghostHeadlight.setOffAxisExponent(20.0f);
+		ghostHeadlight.setConstantAttenuation(1.0f);
+		ghostHeadlight.setLinearAttenuation(0.05f);
+		ghostHeadlight.setQuadraticAttenuation(0.01f);
+	
+		ghostHeadlight.setLocation(new Vector3f(0, -1000, 0)); // start off
+		engine.getSceneGraph().addLight(ghostHeadlight);
+	}
+	
+	public void updateHeadlight() {
+		Vector3f pos = headlightNode.getWorldLocation();
+		Matrix4f rot = headlightNode.getWorldRotation();
+		Vector3f dir = new Vector3f(-rot.m20(), -rot.m21(), -rot.m22()).normalize();
+		ghostHeadlight.setLocation(pos);
+		ghostHeadlight.setDirection(dir);
+	}
+	
+	public void toggleGhostHeadlight(boolean on) {
+		if (on) updateHeadlight();
+		else ghostHeadlight.setLocation(new Vector3f(0, -1000, 0));
+	}
 }

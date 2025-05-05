@@ -23,11 +23,14 @@ public class GhostManager
 	{	System.out.println("adding ghost with ID --> " + id);
 		ObjShape s = game.getGhostShape();
 		TextureImage t = game.getGhostTexture();
-		GhostAvatar newAvatar = new GhostAvatar(id, s, t, position);
+		GhostAvatar newAvatar = new GhostAvatar(id, s, t, position, game.getEngine());
 		Matrix4f initialScale = (new Matrix4f()).scaling(0.25f);
 		newAvatar.setLocalScale(initialScale);
 		newAvatar.createHealthBar(game.getPlayerHealthBarShape(), game.getPlayerHealthBarTexture());
 		ghostAvatars.add(newAvatar);
+		newAvatar.initHeadlight();
+
+		game.getEngine().getLightManager().loadLightArraySSBO();
 	}
 	
 	public void removeGhostAvatar(UUID id)
@@ -75,5 +78,14 @@ public class GhostManager
 		if (ghost != null) {
 			ghost.setHealth(health);  // updates and rescales health bar
 		}
+	}
+
+	public void setGhostHeadlight(UUID id, boolean on) {
+		GhostAvatar ghost = findAvatar(id);
+		if (ghost != null) ghost.toggleGhostHeadlight(on);
+	}
+
+	public Vector<GhostAvatar> getGhosts() {
+		return ghostAvatars;
 	}
 }
