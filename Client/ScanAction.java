@@ -5,6 +5,7 @@ import tage.ai.behaviortrees.BTStatus;
 import tage.shapes.AnimatedShape;
 
 public class ScanAction extends BTAction {
+    private MyGame game;
     private AnimatedShape turretS;
     private boolean started = false;
 
