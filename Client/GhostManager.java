@@ -82,7 +82,11 @@ public class GhostManager
 
 	public void setGhostHeadlight(UUID id, boolean on) {
 		GhostAvatar ghost = findAvatar(id);
-		if (ghost != null) ghost.toggleGhostHeadlight(on);
+		if (ghost != null) {
+			ghost.toggleGhostHeadlight(on);
+		} else {
+			System.out.println("[ERROR] Ghost not found for headlight update: " + id);
+		}
 	}
 
 	public Vector<GhostAvatar> getGhosts() {

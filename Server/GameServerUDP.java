@@ -87,6 +87,23 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 					e.printStackTrace();
 				}
 			}
+
+			if (messageTokens[0].equals("headlight")) {
+				UUID clientID = UUID.fromString(messageTokens[1]);
+			
+				StringBuilder headlightMessage = new StringBuilder("headlight," + clientID.toString());
+				for (int i = 2; i < messageTokens.length; i++) {
+					headlightMessage.append(",").append(messageTokens[i]);
+				}
+			
+				System.out.println("Forwarding HEADLIGHT from: " + clientID + " → " + headlightMessage.toString());
+			
+				try {
+					forwardPacketToAll(headlightMessage.toString(), clientID);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 			
 			if (messageTokens[0].compareTo("move") == 0)
 			{

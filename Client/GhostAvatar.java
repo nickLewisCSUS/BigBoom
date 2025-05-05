@@ -19,6 +19,7 @@ public class GhostAvatar extends GameObject
 	private Light ghostHeadlight;
 	private GameObject headlightNode;
 	private Engine engine;
+	private boolean isHeadlightOn = false;
 	UUID uuid;
 
 	public GhostAvatar(UUID id, ObjShape s, TextureImage t, Vector3f p, Engine e) 
@@ -72,6 +73,7 @@ public class GhostAvatar extends GameObject
 	}
 	
 	public void updateHeadlight() {
+		if (!isHeadlightOn) return; 
 		Vector3f pos = headlightNode.getWorldLocation();
 		Matrix4f rot = headlightNode.getWorldRotation();
 		Vector3f dir = new Vector3f(-rot.m20(), -rot.m21(), -rot.m22()).normalize();
@@ -80,7 +82,12 @@ public class GhostAvatar extends GameObject
 	}
 	
 	public void toggleGhostHeadlight(boolean on) {
-		if (on) updateHeadlight();
-		else ghostHeadlight.setLocation(new Vector3f(0, -1000, 0));
+		isHeadlightOn = on;
+		System.out.println("Toggling ghost light for " + uuid + " to " + on);
+		if (on) {
+			updateHeadlight();
+		} else {
+			ghostHeadlight.setLocation(new Vector3f(0, -1000, 0));
+		}
 	}
 }

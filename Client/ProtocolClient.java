@@ -110,8 +110,10 @@ public class ProtocolClient extends GameConnectionClient
 			if (messageTokens[0].compareTo("headlight") == 0) {
 				UUID ghostID = UUID.fromString(messageTokens[1]);
 				boolean lightOn = messageTokens[2].equals("1");
+				System.out.println("[RECEIVED] Headlight toggle for " + ghostID + " = " + lightOn);
 				ghostManager.setGhostHeadlight(ghostID, lightOn);
-			}
+			} 
+			
 
 			// Handle HEALTH message
 			// Format: (health,remoteId,value)
@@ -350,6 +352,7 @@ public class ProtocolClient extends GameConnectionClient
 	public void sendHeadlightState(boolean isOn) {
 		try {
 			String message = "headlight," + id.toString() + "," + (isOn ? "1" : "0");
+			System.out.println("[SEND] Sending headlight state: " + message);
 			sendPacket(message);
 		} catch (IOException e) {
 			e.printStackTrace();
