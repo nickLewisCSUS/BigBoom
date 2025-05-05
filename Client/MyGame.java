@@ -45,11 +45,13 @@ public class MyGame extends VariableFrameRateGame
 	private Matrix4f initialTranslation, initialRotation, initialScale;
 	private double startTime, prevTime, elapsedTime, amt;
 
-	private GameObject avatar, x, y, z, playerHealthBar, shield, terrain, maze, speedBoost, turret;
+	private GameObject avatar, x, y, z, playerHealthBar, shield, terrain, maze, speedBoost, turret, headlightNode;
 	private ObjShape ghostS, tankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, healthBoostS, turretS;
 	private TextureImage tankT, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, healthBoostT, turretT;
 
 	private Light light;
+	private Light headlight;
+	private boolean headlightOn = true;
 
 	private boolean turretShouldRotate = false;
 	private TurretAIController turretAI;
@@ -207,11 +209,26 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void initializeLights()
-	{	Light.setGlobalAmbient(.5f, .5f, .5f);
+	{	
+		Light.setGlobalAmbient(.5f, .5f, .5f);
 
-		light = new Light();
-		light.setLocation(new Vector3f(0f, 5f, 0f));
-		(engine.getSceneGraph()).addLight(light);
+		// light = new Light();
+		// light.setLocation(new Vector3f(0f, 5f, 0f));
+		// (engine.getSceneGraph()).addLight(light);
+
+		// Head Light for Tank
+		headlight = new Light();
+		headlight.setType(Light.LightType.SPOTLIGHT);
+		headlight.setAmbient(0.2f, 0.2f, 0.2f);
+		headlight.setDiffuse(1.5f, 1.5f, 1.5f);
+		headlight.setSpecular(1.0f, 1.0f, 1.0f);
+		headlight.setCutoffAngle(45.0f); // Narrow beam
+		headlight.setOffAxisExponent(20.0f); // Sharp focus
+		headlight.setConstantAttenuation(1.0f);
+		headlight.setLinearAttenuation(0.05f);
+		headlight.setQuadraticAttenuation(0.01f);
+
+		engine.getSceneGraph().addLight(headlight);
 	}
 
 	public void loadSounds()
@@ -367,6 +384,18 @@ public class MyGame extends VariableFrameRateGame
 		// Update input and networking
 		im.update((float)elapsedTime);
 		processNetworking((float)elapsedTime);
+
+		// Headlight of tank update logic
+		if (headlightOn) {
+			Vector3f pos = headlightNode.getWorldLocation();
+			Matrix4f rot = headlightNode.getWorldRotation();
+			Vector3f dir = new Vector3f(-rot.m20(), -rot.m21(), -rot.m22()).normalize();
+		
+			headlight.setLocation(pos);
+			headlight.setDirection(dir);
+		} else {
+			headlight.setLocation(new Vector3f(0, -1000, 0)); 
+		}
 
 		// Step physics world
         physicsEngine.update(0.016f); // 60Hz step
@@ -577,6 +606,12 @@ public class MyGame extends VariableFrameRateGame
 				running = true;
 				break;
 			}
+			case KeyEvent.VK_L:
+			{
+				headlightOn = !headlightOn;
+				System.out.println("Headlight toggled: " + (headlightOn ? "ON" : "OFF"));
+				break;
+			}
 		}
 		super.keyPressed(e);
 	}
@@ -712,6 +747,9 @@ public class MyGame extends VariableFrameRateGame
         double[] transform = toDoubleArray(avatar.getLocalTranslation().get(vals));
         PhysicsObject avatarPhys = physicsEngine.addCapsuleObject(physicsEngine.nextUID(), 0f, transform, 1f, 2f);
         avatar.setPhysicsObject(avatarPhys);
+
+		headlightNode = new GameObject(avatar);
+		headlightNode.setLocalTranslation(new Matrix4f().translation(0f, 0.3f, -2.0f));
     }
 
 	private void updateAvatarHeight() {
