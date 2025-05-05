@@ -212,9 +212,9 @@ public class MyGame extends VariableFrameRateGame
 	{	
 		Light.setGlobalAmbient(.5f, .5f, .5f);
 
-		// light = new Light();
-		// light.setLocation(new Vector3f(0f, 5f, 0f));
-		// (engine.getSceneGraph()).addLight(light);
+		light = new Light();
+		light.setLocation(new Vector3f(0f, 5f, 0f));
+		(engine.getSceneGraph()).addLight(light);
 
 		// Head Light for Tank
 		headlight = new Light();
@@ -222,7 +222,7 @@ public class MyGame extends VariableFrameRateGame
 		headlight.setAmbient(0.2f, 0.2f, 0.2f);
 		headlight.setDiffuse(1.5f, 1.5f, 1.5f);
 		headlight.setSpecular(1.0f, 1.0f, 1.0f);
-		headlight.setCutoffAngle(45.0f); // Narrow beam
+		headlight.setCutoffAngle(15.0f); // Narrow beam
 		headlight.setOffAxisExponent(20.0f); // Sharp focus
 		headlight.setConstantAttenuation(1.0f);
 		headlight.setLinearAttenuation(0.05f);
@@ -749,7 +749,7 @@ public class MyGame extends VariableFrameRateGame
         avatar.setPhysicsObject(avatarPhys);
 
 		headlightNode = new GameObject(avatar);
-		headlightNode.setLocalTranslation(new Matrix4f().translation(0f, 0.3f, -2.0f));
+		headlightNode.setLocalTranslation(new Matrix4f().translation(0f, 0.3f, 0f));
     }
 
 	private void updateAvatarHeight() {
