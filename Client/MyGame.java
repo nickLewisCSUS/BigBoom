@@ -14,6 +14,7 @@ import java.awt.event.*;
 
 import java.io.*;
 import java.util.*;
+import java.util.List;
 import java.util.Random;
 import java.net.InetAddress;
 
@@ -46,7 +47,8 @@ public class MyGame extends VariableFrameRateGame
 	private double startTime, prevTime, elapsedTime, amt;
 
 	private GameObject avatar, x, y, z, playerHealthBar, shield, terrain, maze, speedBoost, turret;
-	private ObjShape ghostS, tankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, healthBoostS, turretS;
+	private AnimatedShape turretS;
+	private ObjShape ghostS, tankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, healthBoostS;
 	private TextureImage tankT, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, healthBoostT, turretT;
 
 	private Light light;
@@ -81,6 +83,7 @@ public class MyGame extends VariableFrameRateGame
 	private float maxHealth = 100f;
 	
 	private ArrayList<PowerUp> powerUps = new ArrayList<>();
+	private ArrayList<GameObject> avatars = new ArrayList<>();
 	private boolean boosted = false;
 	private long boostEndTime = 0;
 	private boolean shieldActive = false;
@@ -122,8 +125,11 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void loadShapes()
-	{	turretS = new ImportedModel("turret1.obj");
-		//turretS.loadAnimation("scanning", "turret.rka");
+	{	//turretS = new ImportedModel("turret1.obj");
+		turretS = new AnimatedShape("turret.rkm", "turret.rks");
+		turretS.loadAnimation("SCAN", "turretScan.rka");
+		turretS.loadAnimation("ACTIVATE", "turretActivate.rka");
+		turretS.loadAnimation("DEACTIVATE", "turretDeactivate.rka");
 		ghostS = new Sphere();
 		tankS = new ImportedModel("tiger2.obj");
 		shieldS = new ImportedModel("sheildmodel.obj");
@@ -188,7 +194,7 @@ public class MyGame extends VariableFrameRateGame
 
 		// build turret object
 		turret = new GameObject(GameObject.root(), turretS, turretT);
-		initialTranslation = (new Matrix4f()).translation(-10f,0f,2f);
+		initialTranslation = (new Matrix4f()).translation(-40f,0f,2f);
 		turret.setLocalTranslation(initialTranslation);
 		initialScale = (new Matrix4f()).scaling(0.5f, 0.5f, 0.5f);
 		turret.setLocalScale(initialScale); 
@@ -284,7 +290,6 @@ public class MyGame extends VariableFrameRateGame
 		} else {
 			System.out.println("Warning: Avatar is null during physics setup!");
 		}
-		
 		
 		buildPowerUps();
 
@@ -400,6 +405,8 @@ public class MyGame extends VariableFrameRateGame
 			tempTransform = toDoubleArray(combined.get(vals));
 			speedBoost.getPhysicsObject().setTransform(tempTransform);
 		}
+		
+		turretS.updateAnimation();
 		turretAI.update((float) elapsedTime);
 
 		// update inputs and camera
@@ -577,6 +584,20 @@ public class MyGame extends VariableFrameRateGame
 				running = true;
 				break;
 			}
+			case KeyEvent.VK_V:
+			{
+				System.out.println("Starting animations...");
+				turretS.stopAnimation();
+				turretS.playAnimation("SCAN", 1.0f, AnimatedShape.EndType.LOOP, 0);
+				break;
+			}
+			case KeyEvent.VK_B:
+			{
+				System.out.println("Stopping animations...");
+				turretS.stopAnimation();
+				turretS.playAnimation("DEACTIVATE", 1.0f, AnimatedShape.EndType.PAUSE, 0);
+				break;
+			}
 		}
 		super.keyPressed(e);
 	}
@@ -712,6 +733,7 @@ public class MyGame extends VariableFrameRateGame
         double[] transform = toDoubleArray(avatar.getLocalTranslation().get(vals));
         PhysicsObject avatarPhys = physicsEngine.addCapsuleObject(physicsEngine.nextUID(), 0f, transform, 1f, 2f);
         avatar.setPhysicsObject(avatarPhys);
+		avatars.add(avatar);
     }
 
 	private void updateAvatarHeight() {
@@ -876,5 +898,22 @@ public class MyGame extends VariableFrameRateGame
 		turret.setLocalTranslation(currentTranslation);
 		turret.setLocalScale(currentScale);
 	}
+
+	public List<GameObject> getAllAvatars() {
+		return avatars;
+	}
+
+	public GameObject getClosestAvatar(GameObject from) {
+		float minDist = Float.MAX_VALUE;
+		GameObject closest = null;
+		for (GameObject g : avatars) {
+			float dist = g.getWorldLocation().distance(from.getWorldLocation());
+			if (dist < minDist) {
+				minDist = dist;
+				closest = g;
+			}
+		}
+		return closest;
+	}	
 
 }
