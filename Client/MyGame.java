@@ -49,9 +49,9 @@ public class MyGame extends VariableFrameRateGame
 	private ObjShape ghostS, tankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, healthBoostS, turretS;
 	private TextureImage tankT, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, healthBoostT, turretT;
 
-	private Light light;
-	private Light headlight;
+	private Light light, headlight, healthSpotlight;
 	private boolean headlightOn = true;
+	private ArrayList<PowerUpLight> powerUpLights = new ArrayList<>();
 
 	private boolean turretShouldRotate = false;
 	private TurretAIController turretAI;
@@ -229,6 +229,7 @@ public class MyGame extends VariableFrameRateGame
 		headlight.setQuadraticAttenuation(0.01f);
 
 		engine.getSceneGraph().addLight(headlight);
+
 	}
 
 	public void loadSounds()
@@ -434,6 +435,11 @@ public class MyGame extends VariableFrameRateGame
 			speedBoost.getPhysicsObject().setTransform(tempTransform);
 		}
 		turretAI.update((float) elapsedTime);
+
+		for (PowerUpLight pul : powerUpLights) {
+			pul.spotlight.setLocation(pul.holder.getWorldLocation());
+			pul.spotlight.setDirection(new Vector3f(0f, -1f, 0f));
+		}
 
 		// update inputs and camera
 		im.update((float)elapsedTime);
@@ -837,6 +843,7 @@ public class MyGame extends VariableFrameRateGame
 			HealthBoost healthBoost = new HealthBoost(this, healthObj, healthPhys, nextBoostID++, protClient);
 			powerUps.add(healthBoost);
 
+			
 			// --- Sheild Powerup ---
 			GameObject sheildObj = new GameObject(GameObject.root(), shieldS, shieldT);
 			sheildObj.setLocalScale(new Matrix4f().scaling(0.25f));
@@ -853,6 +860,10 @@ public class MyGame extends VariableFrameRateGame
 			ShieldPowerUp shieldPowerUp = new ShieldPowerUp(this, sheildObj, sheildPhys, nextBoostID++, protClient);
 			powerUps.add(shieldPowerUp);
 
+			addSpotlightAbove(speedObj, new Vector3f(0f, 1f, 0f));     // green for speed
+			addSpotlightAbove(healthObj, new Vector3f(1f, 0f, 0f));    // red for health
+			addSpotlightAbove(sheildObj, new Vector3f(1f, 1f, 0f));    // yellow for shield
+
 		}
 		initializedBoosts = false;
 	}
@@ -862,6 +873,33 @@ public class MyGame extends VariableFrameRateGame
 			boosted = false;
 		}
 	}
+
+	private void addSpotlightAbove(GameObject obj, Vector3f color) {
+		// Create a light object
+		Light spotlight = new Light();
+		spotlight.setType(Light.LightType.SPOTLIGHT);
+		spotlight.setAmbient(0.1f, 0.1f, 0.1f);
+		spotlight.setDiffuse(color.x(), color.y(), color.z());
+		spotlight.setSpecular(color.x(), color.y(), color.z());
+		spotlight.setCutoffAngle(10.0f); // smaller cone
+		spotlight.setOffAxisExponent(20.0f);
+		spotlight.setConstantAttenuation(1.0f);
+		spotlight.setLinearAttenuation(0.05f);
+		spotlight.setQuadraticAttenuation(0.01f);
+	
+		// Create a child GameObject that holds the light above the powerup
+		GameObject lightHolder = new GameObject(obj);  // parented to power-up
+		lightHolder.setLocalTranslation(new Matrix4f().translation(0f, 2f, 0f)); // hover above
+	
+		spotlight.setLocation(lightHolder.getWorldLocation());
+		spotlight.setDirection(new Vector3f(0f, -1f, 0f)); // shine down
+	
+		engine.getSceneGraph().addLight(spotlight);
+
+		powerUpLights.add(new PowerUpLight(lightHolder, spotlight));
+	}
+	
+	
 
 	public ArrayList<PowerUp> getPowerUps() {
 		return powerUps;

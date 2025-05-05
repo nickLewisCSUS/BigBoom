@@ -110,7 +110,6 @@ public class ProtocolClient extends GameConnectionClient
 			if (messageTokens[0].compareTo("headlight") == 0) {
 				UUID ghostID = UUID.fromString(messageTokens[1]);
 				boolean lightOn = messageTokens[2].equals("1");
-				System.out.println("[RECEIVED] Headlight toggle for " + ghostID + " = " + lightOn);
 				ghostManager.setGhostHeadlight(ghostID, lightOn);
 			} 
 			

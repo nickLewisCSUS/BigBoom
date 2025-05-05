@@ -83,7 +83,6 @@ public class GhostAvatar extends GameObject
 	
 	public void toggleGhostHeadlight(boolean on) {
 		isHeadlightOn = on;
-		System.out.println("Toggling ghost light for " + uuid + " to " + on);
 		if (on) {
 			updateHeadlight();
 		} else {

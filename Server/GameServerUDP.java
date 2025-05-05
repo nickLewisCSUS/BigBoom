@@ -96,7 +96,6 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 					headlightMessage.append(",").append(messageTokens[i]);
 				}
 			
-				System.out.println("Forwarding HEADLIGHT from: " + clientID + " → " + headlightMessage.toString());
 			
 				try {
 					forwardPacketToAll(headlightMessage.toString(), clientID);
