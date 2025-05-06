@@ -8,7 +8,7 @@ import tage.shapes.AnimatedShape;
 public class DeactivateAction extends BTAction {
     private MyGame game;
     private AnimatedShape turretS;
-    private boolean animationStarted = false;
+    private boolean deactivateAnimationStarted = false;
     private float elapsedTime = 0f;
     private final float animationDuration = 3000f;
 
@@ -22,10 +22,10 @@ public class DeactivateAction extends BTAction {
         GameObject closest = game.getClosestAvatar(turret);
         if (closest == null) return BTStatus.BH_FAILURE;
 
-        if (!animationStarted) {
+        if (!deactivateAnimationStarted) {
             System.out.println("[DeactivateAction] Starting DEACTIVATE animation");
             turretS.playAnimation("DEACTIVATE", 3.0f, AnimatedShape.EndType.PAUSE, 0);
-            animationStarted = true;
+            deactivateAnimationStarted = true;
             elapsedTime = 0f;
             System.out.println(elapsedTime);
             return BTStatus.BH_RUNNING;
@@ -37,6 +37,14 @@ public class DeactivateAction extends BTAction {
             return BTStatus.BH_SUCCESS;
         }
         return BTStatus.BH_RUNNING; 
+    }
+
+    public boolean getDeactivateAnimationStarted() {
+        return deactivateAnimationStarted;
+    }
+
+    public void setDeactivateAnimationStarted(boolean started) {
+        this.deactivateAnimationStarted = started;
     }
 }
 
