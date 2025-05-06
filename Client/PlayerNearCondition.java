@@ -33,6 +33,7 @@ public class PlayerNearCondition extends BTCondition {
             controller.setPreviousState(TurretState.NEAR);
             activateAction.setActivateAnimationStarted(false);
             activateAction.setScanActivationStarted(false);
+            deactivateAction.setDeactivateAnimationStarted(false);
         }
         System.out.println("DEBUG [PlayerNearCondition]: Closest distance = " + dist + ", In range: " + (dist >= 10f && dist <= 30f));
         return inRange;

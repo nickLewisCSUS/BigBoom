@@ -10,7 +10,7 @@ import tage.shapes.AnimatedShape;
 public class TrackPlayerAction extends BTAction {
     private MyGame game;
     private AnimatedShape turretS;
-    private boolean animationStarted = false;
+    private boolean started = false;
     private float elapsedTime = 0f;
     private final float animationDuration = 480f;
 
@@ -23,9 +23,13 @@ public class TrackPlayerAction extends BTAction {
         GameObject turret = game.getTurret();
         GameObject closest = game.getClosestAvatar(turret);
         if (closest == null) return BTStatus.BH_FAILURE;
+        if (!started) {
+            turretS.stopAnimation();
+            started = true;
+        }
+        Vector3f playerPos = closest.getWorldLocation();
         System.out.println("[TrackPlayerAction] Rotating turret to face closest player");
-        Vector3f playerLoc = closest.getWorldLocation();
-        turret.lookAt(playerLoc);
+        turret.lookAt(playerPos);
         return BTStatus.BH_SUCCESS;
     }
 }

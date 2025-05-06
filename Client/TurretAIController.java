@@ -41,7 +41,7 @@ public class TurretAIController {
         farSequence.addChild(deactivateAction);
     
         // Insert conditions into behavior tree
-        bt.insertAtRoot(new PlayerVeryNearCondition(game) {
+        bt.insertAtRoot(new PlayerVeryNearCondition(false, game, game.getTurret(), this, activateAction) {
             public BTStatus update(float e) {
                 if (check()) return trackSequence.tick(e);
                 return BTStatus.BH_FAILURE; 
@@ -55,7 +55,7 @@ public class TurretAIController {
             }
         });
     
-        bt.insertAtRoot(new PlayerFarCondition(false, game, game.getTurret()) {
+        bt.insertAtRoot(new PlayerFarCondition(false, game, game.getTurret(), this, activateAction) {
             public BTStatus update(float e) {
                 if (check()) return farSequence.tick(e);
                 return BTStatus.BH_FAILURE;

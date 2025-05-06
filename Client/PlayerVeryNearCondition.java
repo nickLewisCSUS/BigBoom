@@ -6,10 +6,16 @@ import org.joml.Vector3f;
 
 public class PlayerVeryNearCondition extends BTCondition {
     private MyGame game;
+    private GameObject turret;
+    private ActivateAction activateAction;
+    private TurretAIController controller;
 
-    public PlayerVeryNearCondition(MyGame g) {
-        super(false); // not negated
-        game = g;
+    public PlayerVeryNearCondition(boolean toNegate, MyGame game, GameObject turret,TurretAIController controller, ActivateAction activateAction) {
+        super(toNegate);
+        this.game = game;
+        this.turret = turret; 
+        this.controller = controller;
+        this.activateAction = activateAction;
     }
 
     protected boolean check() {
@@ -18,7 +24,11 @@ public class PlayerVeryNearCondition extends BTCondition {
         if (closest == null) return false;
 
         float dist = closest.getWorldLocation().distance(turret.getWorldLocation());
-        System.out.println("DEBUG [PlayerVeryNearCondition]: Closest distance = " + dist + ", In range: " + (dist <= 10.0f));
-        return dist <= 10.0f;
+        boolean inRange = (dist <= 10.0f);
+        if (inRange && controller.getPreviousState() != TurretAIController.TurretState.FAR) {
+            activateAction.setScanActivationStarted(false);
+            System.out.println("DEBUG [PlayerVeryNearCondition]: Closest distance = " + dist + ", In range: " + (dist <= 10.0f));
+        }
+        return inRange;
     }
 }

@@ -62,7 +62,7 @@ public class ActivateAction extends BTAction {
         this.scanAnimationStarted = started;
     }
 
-    public AnimatedShape.EndType getScaEndType() {
+    public AnimatedShape.EndType getScanEndType() {
         return scanEndType;
     }
 

@@ -70,9 +70,8 @@ public class MyGame extends VariableFrameRateGame
 
 	private int battleField;
 	private PhysicsEngine physicsEngine;
-	private PhysicsObject avatarP, terrainP, speedBoostP;
+	private PhysicsObject avatarP, speedBoostP;
 
-	private Vector3f lastValidPosition;
 	public enum MovementDirection { NONE, FORWARD, BACKWARD }
 	private MovementDirection moveDirection = MovementDirection.NONE;
 	private Vector3f nextPosition = null;
@@ -169,8 +168,6 @@ public class MyGame extends VariableFrameRateGame
         buildMaze();
         buildAvatar();
 
-		lastValidPosition = avatar.getWorldLocation();
-
 		// build speed powerup
 		speedBoost = new GameObject(GameObject.root(), speedBoostS, speedBoostT);
 		initialTranslation = (new Matrix4f()).translation(0f,0f,-1f);
@@ -234,7 +231,6 @@ public class MyGame extends VariableFrameRateGame
 		turretSound.setMinDistance(2.0f);
 		turretSound.setRollOff(2.0f);
 	}
-
 
 	@Override
 	public void initializeGame()
@@ -300,8 +296,6 @@ public class MyGame extends VariableFrameRateGame
 		engine.enablePhysicsWorldRender();
 
 		im = engine.getInputManager();
-		
- 
 
 		// initial sound settings
 		turretSound.setLocation(turret.getWorldLocation());
@@ -325,8 +319,7 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void update()
-	{	Matrix4f  currentTranslation, currentRotation;
-		elapsedTime = System.currentTimeMillis() - prevTime;
+	{	elapsedTime = System.currentTimeMillis() - prevTime;
 		prevTime = System.currentTimeMillis();
 		amt = elapsedTime * 0.03;
 		Camera c = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
@@ -347,7 +340,7 @@ public class MyGame extends VariableFrameRateGame
 		(engine.getHUDmanager()).setHUD1(dispStr1, hud1Color, 15, 15);
 		(engine.getHUDmanager()).setHUD2(dispStr2, hud2Color, 500, 15);
 
-		if (!initializedBoosts && isPowerUpAuthority) {
+		if (!initializedBoosts && (isPowerUpAuthority || !isClientConnected)) {
 			int counter = 0;
 			for (PowerUp boost : powerUps) {
 				counter++;
