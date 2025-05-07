@@ -12,7 +12,7 @@ public class ActivateAction extends BTAction {
     private boolean scanAnimationStarted = false;
     private AnimatedShape.EndType scanEndType = AnimatedShape.EndType.LOOP;
     private float elapsedTime = 0f;
-    private final float animationDuration = 1500f;
+    private final float animationDuration = 2000f;
 
     public ActivateAction(MyGame g) {
         game = g;
@@ -60,13 +60,5 @@ public class ActivateAction extends BTAction {
 
     public void setScanActivationStarted(boolean started) {
         this.scanAnimationStarted = started;
-    }
-
-    public AnimatedShape.EndType getScanEndType() {
-        return scanEndType;
-    }
-
-    public void setScanEndType(AnimatedShape.EndType type) {
-        this.scanEndType = type;
     }
 }

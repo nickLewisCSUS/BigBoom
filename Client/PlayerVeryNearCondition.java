@@ -4,6 +4,8 @@ import tage.ai.behaviortrees.BTCondition;
 import tage.GameObject;
 import org.joml.Vector3f;
 
+import Client.TurretAIController.TurretState;
+
 public class PlayerVeryNearCondition extends BTCondition {
     private MyGame game;
     private GameObject turret;
@@ -19,13 +21,15 @@ public class PlayerVeryNearCondition extends BTCondition {
     }
 
     protected boolean check() {
-        GameObject turret = game.getTurret();
+        turret = game.getTurret();
         GameObject closest = game.getClosestAvatar(turret);
         if (closest == null) return false;
 
         float dist = closest.getWorldLocation().distance(turret.getWorldLocation());
         boolean inRange = (dist <= 10.0f);
-        if (inRange && controller.getPreviousState() != TurretAIController.TurretState.FAR) {
+        System.out.println("Previous State: " + controller.getPreviousState());
+        if (inRange && controller.getPreviousState() != TurretAIController.TurretState.VERY_NEAR) {
+            controller.setPreviousState(TurretState.VERY_NEAR);
             activateAction.setScanActivationStarted(false);
             System.out.println("DEBUG [PlayerVeryNearCondition]: Closest distance = " + dist + ", In range: " + (dist <= 10.0f));
         }

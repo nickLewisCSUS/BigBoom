@@ -13,6 +13,7 @@ public class TurretAIController {
     private TurretState previousState = TurretState.NONE;
     private ActivateAction activateAction;
     private DeactivateAction deactivateAction;
+    private TrackPlayerAction trackPlayerAction;
 
     public TurretAIController(MyGame g) {
         game = g;
@@ -27,10 +28,11 @@ public class TurretAIController {
         bt = new BehaviorTree(BTCompositeType.SELECTOR);
         activateAction = new ActivateAction(game);
         deactivateAction = new DeactivateAction(game);
+        trackPlayerAction = new TrackPlayerAction(game);
 
         // Close range tracking
         BTSequence trackSequence = new BTSequence(1);
-        trackSequence.addChild(new TrackPlayerAction(game));
+        trackSequence.addChild(trackPlayerAction);
     
         // Mid range scanning (after activating)
         BTSequence scanSequence = new BTSequence(2);
@@ -48,7 +50,7 @@ public class TurretAIController {
             }
         });
     
-        bt.insertAtRoot(new PlayerNearCondition(false, game, game.getTurret(), this, activateAction, deactivateAction) {
+        bt.insertAtRoot(new PlayerNearCondition(false, game, game.getTurret(), this, activateAction, deactivateAction, trackPlayerAction) {
             public BTStatus update(float e) {
                 if (check()) return scanSequence.tick(e);
                 return BTStatus.BH_FAILURE;
@@ -67,7 +69,10 @@ public class TurretAIController {
         return previousState;
     }
 
-    public void setPreviousState(TurretState previousState) {
-        this.previousState = previousState;
+    public void setPreviousState(TurretState newState) {
+        if (this.previousState != newState) {
+            this.previousState = newState;
+            game.getProtocolClient().sendTurretStateUpdate(newState.toString());
+        }
     }
 }
