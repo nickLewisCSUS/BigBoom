@@ -8,8 +8,10 @@ import java.util.UUID;
 import java.util.Vector;
 import org.joml.*;
 
+import Client.TurretAIController.TurretState;
 import tage.*;
 import tage.networking.client.GameConnectionClient;
+import tage.shapes.AnimatedShape;
 
 public class ProtocolClient extends GameConnectionClient
 {
@@ -246,6 +248,40 @@ public class ProtocolClient extends GameConnectionClient
 					}
 				}
 			}
+
+			if (messageTokens[0].equals("turretstate")) {
+				String newState = messageTokens[1];
+				System.out.println("Received turret state update: " + newState);
+				game.getTurretAIController().setPreviousState(TurretState.valueOf(newState));
+			}
+
+			if (messageTokens[0].equals("turretRotate")) {
+				Matrix4f rot = new Matrix4f();
+				int index = 1;
+				for (int i = 0; i < 4; i++) {
+					for (int j = 0; j < 4; j++) {
+						rot.set(i, j, Float.parseFloat(messageTokens[index++]));
+					}
+				}
+				game.getTurret().setLocalRotation(rot);
+			}
+
+			// --- Turret State Sync (Client Replay) ---
+			if (messageTokens[0].equals("turretState")) {
+				String state = messageTokens[1];
+				AnimatedShape turretS = (AnimatedShape) game.getTurret().getShape();
+
+				switch (state) {
+					case "ACTIVATE":
+						turretS.playAnimation("ACTIVATE", 3.0f, AnimatedShape.EndType.PAUSE, 0);
+						break;
+					case "SCAN":
+						turretS.playAnimation("SCAN", 1.0f, AnimatedShape.EndType.LOOP, 0);
+						break;
+					case "DEACTIVATE":
+						turretS.playAnimation("DEACTIVATE", 3.0f, AnimatedShape.EndType.PAUSE, 0);
+				}
+			}
 	}	}
 	
 	// The initial message from the game client requesting to join the 
@@ -348,11 +384,45 @@ public class ProtocolClient extends GameConnectionClient
 			e.printStackTrace();
 		}
 	}
+
 	public void sendHeadlightState(boolean isOn) {
 		try {
 			String message = "headlight," + id.toString() + "," + (isOn ? "1" : "0");
 			System.out.println("[SEND] Sending headlight state: " + message);
-			sendPacket(message);
+			sendPacket(message);		
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	// Message: (turretstate, state)
+	// Example: (turretstate, NEAR)
+	public void sendTurretStateUpdate(String state) {
+		try {
+			String msg = "turretstate, " + state;
+			sendPacket(msg);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void sendTurretRotateMessage(Matrix4f rot) {
+		try {
+			StringBuilder msg = new StringBuilder("turretRotate");
+			for (int i = 0; i < 4; i++) {
+				for (int j = 0; j < 4; j++) {
+					msg.append(", ").append(rot.get(i, j));
+				}
+			}
+			sendPacket(msg.toString());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void sendTurretStateMessage(String state) {
+		try {
+			sendPacket("turretState," + state);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
