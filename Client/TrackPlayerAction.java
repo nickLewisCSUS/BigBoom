@@ -1,5 +1,6 @@
 package Client;
 
+import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 import tage.GameObject;
@@ -10,9 +11,7 @@ import tage.shapes.AnimatedShape;
 public class TrackPlayerAction extends BTAction {
     private MyGame game;
     private AnimatedShape turretS;
-    private boolean started = false;
-    private float elapsedTime = 0f;
-    private final float animationDuration = 480f;
+    private boolean playerTrackingStarted = false;
 
     public TrackPlayerAction(MyGame g) {
         game = g;
@@ -23,14 +22,39 @@ public class TrackPlayerAction extends BTAction {
         GameObject turret = game.getTurret();
         GameObject closest = game.getClosestAvatar(turret);
         if (closest == null) return BTStatus.BH_FAILURE;
-        if (!started) {
+
+        Vector3f playerLoc = closest.getWorldLocation();
+        Vector3f turretLoc = turret.getWorldLocation();
+
+        if (!playerTrackingStarted) {
+            System.out.println("Stopping Animation!");
             turretS.stopAnimation();
-            started = true;
+            playerTrackingStarted = true;
         }
-        Vector3f playerPos = closest.getWorldLocation();
-        System.out.println("[TrackPlayerAction] Rotating turret to face closest player");
-        turret.lookAt(playerPos);
+
+        // Project the positions to XZ plane
+        Vector3f flatPlayer = new Vector3f(playerLoc.x(), turretLoc.y(), playerLoc.z());
+        Vector3f direction = flatPlayer.sub(turretLoc, new Vector3f()).normalize();
+
+        // Calculate rotation around Y-axis
+        float angle = (float) Math.atan2(direction.x, direction.z); // z forward
+        Matrix4f rot = new Matrix4f().rotateY(angle);
+        System.out.println("[TrackPlayerAction] Rotating turret to face closest player: " + closest);
+        turret.setLocalRotation(rot);
+
+        if (game.isClosestToTurret()) {
+            game.getProtocolClient().sendTurretRotateMessage(rot);
+        }
+        
         return BTStatus.BH_SUCCESS;
+    }
+
+    public boolean getPlayerTrackingStarted() {
+        return playerTrackingStarted;
+    }
+
+    public void setPlayerTrackingStarted(boolean started) {
+        this.playerTrackingStarted = started;
     }
 }
 

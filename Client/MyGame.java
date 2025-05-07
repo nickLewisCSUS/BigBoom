@@ -104,6 +104,14 @@ public class MyGame extends VariableFrameRateGame
 		return boosted;
 	}
 
+	public TurretAIController getTurretAIController() {
+		return this.turretAI;
+	}
+
+	public ProtocolClient getProtocolClient() {
+		return this.protClient;
+	}
+
 	public MyGame(String serverAddress, int serverPort, String protocol)
 	{	super();
 		gm = new GhostManager(this);
@@ -899,14 +907,19 @@ public class MyGame extends VariableFrameRateGame
 	public GameObject getClosestAvatar(GameObject from) {
 		float minDist = Float.MAX_VALUE;
 		GameObject closest = null;
-		for (GameObject g : avatars) {
-			float dist = g.getWorldLocation().distance(from.getWorldLocation());
+		for (GameObject avatar : getAllAvatars()) {
+			float dist = avatar.getWorldLocation().distance(from.getWorldLocation());
 			if (dist < minDist) {
 				minDist = dist;
-				closest = g;
+				closest = avatar;
 			}
 		}
 		return closest;
+	}
+
+	public boolean isClosestToTurret() {
+		GameObject closest = getClosestAvatar(getTurret());
+		return closest == getAvatar();
 	}	
 
 }
