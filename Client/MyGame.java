@@ -46,12 +46,14 @@ public class MyGame extends VariableFrameRateGame
 	private Matrix4f initialTranslation, initialRotation, initialScale;
 	private double startTime, prevTime, elapsedTime, amt;
 
-	private GameObject avatar, x, y, z, playerHealthBar, shield, terrain, maze, speedBoost, turret;
+	private GameObject avatar, x, y, z, playerHealthBar, shield, terrain, maze, speedBoost, turret, headlightNode;
 	private AnimatedShape turretS;
 	private ObjShape ghostS, tankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, healthBoostS;
 	private TextureImage tankT, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, healthBoostT, turretT;
 
-	private Light light;
+	private Light light, headlight, healthSpotlight;
+	private boolean headlightOn = true;
+	private ArrayList<PowerUpLight> powerUpLights = new ArrayList<>();
 
 	private boolean turretShouldRotate = false;
 	private TurretAIController turretAI;
@@ -218,11 +220,27 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void initializeLights()
-	{	Light.setGlobalAmbient(.5f, .5f, .5f);
+	{	
+		Light.setGlobalAmbient(.5f, .5f, .5f);
 
 		light = new Light();
 		light.setLocation(new Vector3f(0f, 5f, 0f));
 		(engine.getSceneGraph()).addLight(light);
+
+		// Head Light for Tank
+		headlight = new Light();
+		headlight.setType(Light.LightType.SPOTLIGHT);
+		headlight.setAmbient(0.2f, 0.2f, 0.2f);
+		headlight.setDiffuse(1.5f, 1.5f, 1.5f);
+		headlight.setSpecular(1.0f, 1.0f, 1.0f);
+		headlight.setCutoffAngle(15.0f); // Narrow beam
+		headlight.setOffAxisExponent(20.0f); // Sharp focus
+		headlight.setConstantAttenuation(1.0f);
+		headlight.setLinearAttenuation(0.05f);
+		headlight.setQuadraticAttenuation(0.01f);
+
+		engine.getSceneGraph().addLight(headlight);
+
 	}
 
 	public void loadSounds()
@@ -374,6 +392,22 @@ public class MyGame extends VariableFrameRateGame
 		im.update((float)elapsedTime);
 		processNetworking((float)elapsedTime);
 
+		// Headlight of tank update logic
+		if (headlightOn) {
+			Vector3f pos = headlightNode.getWorldLocation();
+			Matrix4f rot = headlightNode.getWorldRotation();
+			Vector3f dir = new Vector3f(-rot.m20(), -rot.m21(), -rot.m22()).normalize();
+		
+			headlight.setLocation(pos);
+			headlight.setDirection(dir);
+		} else {
+			headlight.setLocation(new Vector3f(0, -1000, 0)); 
+		}
+
+		for (GhostAvatar ghost : gm.getGhosts()) {
+			ghost.updateHeadlight();
+		}
+
 		// Step physics world
         physicsEngine.update(0.016f); // 60Hz step
 
@@ -409,6 +443,11 @@ public class MyGame extends VariableFrameRateGame
 		
 		turretS.updateAnimation();
 		turretAI.update((float) elapsedTime);
+
+		for (PowerUpLight pul : powerUpLights) {
+			pul.spotlight.setLocation(pul.holder.getWorldLocation());
+			pul.spotlight.setDirection(new Vector3f(0f, -1f, 0f));
+		}
 
 		// update inputs and camera
 		im.update((float)elapsedTime);
@@ -585,18 +624,10 @@ public class MyGame extends VariableFrameRateGame
 				running = true;
 				break;
 			}
-			case KeyEvent.VK_V:
+			case KeyEvent.VK_L:
 			{
-				System.out.println("Starting animations...");
-				turretS.stopAnimation();
-				turretS.playAnimation("SCAN", 1.0f, AnimatedShape.EndType.LOOP, 0);
-				break;
-			}
-			case KeyEvent.VK_B:
-			{
-				System.out.println("Stopping animations...");
-				turretS.stopAnimation();
-				turretS.playAnimation("DEACTIVATE", 1.0f, AnimatedShape.EndType.PAUSE, 0);
+				headlightOn = !headlightOn;
+				protClient.sendHeadlightState(headlightOn);
 				break;
 			}
 		}
@@ -734,6 +765,9 @@ public class MyGame extends VariableFrameRateGame
         double[] transform = toDoubleArray(avatar.getLocalTranslation().get(vals));
         PhysicsObject avatarPhys = physicsEngine.addCapsuleObject(physicsEngine.nextUID(), 0f, transform, 1f, 2f);
         avatar.setPhysicsObject(avatarPhys);
+
+		headlightNode = new GameObject(avatar);
+		headlightNode.setLocalTranslation(new Matrix4f().translation(0f, 0.3f, 0f));
 		avatars.add(avatar);
     }
 
@@ -818,6 +852,7 @@ public class MyGame extends VariableFrameRateGame
 			HealthBoost healthBoost = new HealthBoost(this, healthObj, healthPhys, nextBoostID++, protClient);
 			powerUps.add(healthBoost);
 
+			
 			// --- Sheild Powerup ---
 			GameObject sheildObj = new GameObject(GameObject.root(), shieldS, shieldT);
 			sheildObj.setLocalScale(new Matrix4f().scaling(0.25f));
@@ -834,6 +869,10 @@ public class MyGame extends VariableFrameRateGame
 			ShieldPowerUp shieldPowerUp = new ShieldPowerUp(this, sheildObj, sheildPhys, nextBoostID++, protClient);
 			powerUps.add(shieldPowerUp);
 
+			addSpotlightAbove(speedObj, new Vector3f(0f, 1f, 0f));     // green for speed
+			addSpotlightAbove(healthObj, new Vector3f(1f, 0f, 0f));    // red for health
+			addSpotlightAbove(sheildObj, new Vector3f(1f, 1f, 0f));    // yellow for shield
+
 		}
 		initializedBoosts = false;
 	}
@@ -843,6 +882,33 @@ public class MyGame extends VariableFrameRateGame
 			boosted = false;
 		}
 	}
+
+	private void addSpotlightAbove(GameObject obj, Vector3f color) {
+		// Create a light object
+		Light spotlight = new Light();
+		spotlight.setType(Light.LightType.SPOTLIGHT);
+		spotlight.setAmbient(0.1f, 0.1f, 0.1f);
+		spotlight.setDiffuse(color.x(), color.y(), color.z());
+		spotlight.setSpecular(color.x(), color.y(), color.z());
+		spotlight.setCutoffAngle(10.0f); // smaller cone
+		spotlight.setOffAxisExponent(20.0f);
+		spotlight.setConstantAttenuation(1.0f);
+		spotlight.setLinearAttenuation(0.05f);
+		spotlight.setQuadraticAttenuation(0.01f);
+	
+		// Create a child GameObject that holds the light above the powerup
+		GameObject lightHolder = new GameObject(obj);  // parented to power-up
+		lightHolder.setLocalTranslation(new Matrix4f().translation(0f, 2f, 0f)); // hover above
+	
+		spotlight.setLocation(lightHolder.getWorldLocation());
+		spotlight.setDirection(new Vector3f(0f, -1f, 0f)); // shine down
+	
+		engine.getSceneGraph().addLight(spotlight);
+
+		powerUpLights.add(new PowerUpLight(lightHolder, spotlight));
+	}
+	
+	
 
 	public ArrayList<PowerUp> getPowerUps() {
 		return powerUps;
