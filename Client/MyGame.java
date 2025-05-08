@@ -56,6 +56,15 @@ public class MyGame extends VariableFrameRateGame
 	private boolean turretShouldRotate = false;
 	private TurretAIController turretAI;
 
+	private int currentAmmo = 5;
+	private int maxAmmo = 5;
+	private boolean isReloading = false;
+	private long reloadStartTime = 0;
+	private final long reloadDuration = 2000;
+
+	private String activePowerUpName = null;
+	private long powerUpEndTime = 0;
+
 	private CameraOrbit3D orbitController;
 
 	private IAudioManager audioMgr;
@@ -345,20 +354,26 @@ public class MyGame extends VariableFrameRateGame
 		Camera c = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
 
 		orbitController.updateCameraPosition();
+		float elapsTimeSec = (float) elapsedTime / 1000.0f;
 		
 		// build and set HUD
-		int elapsTimeSec = Math.round((float)(System.currentTimeMillis()-startTime)/1000.0f);
-		String elapsTimeStr = Integer.toString(elapsTimeSec);
-		String counterStr = Integer.toString(counter);
-		String dispStr1 = "Time = " + elapsTimeStr;
-		String dispStr2 = "camera position = "
-			+ (c.getLocation()).x()
-			+ ", " + (c.getLocation()).y()
-			+ ", " + (c.getLocation()).z();
-		Vector3f hud1Color = new Vector3f(1,0,0);
-		Vector3f hud2Color = new Vector3f(1,1,1);
-		(engine.getHUDmanager()).setHUD1(dispStr1, hud1Color, 15, 15);
-		(engine.getHUDmanager()).setHUD2(dispStr2, hud2Color, 500, 15);
+		// HUD1: Health
+		String dispStr1 = "Health: " + Math.round((currentHealth / maxHealth) * 100) + "%";
+		(engine.getHUDmanager()).setHUD1(dispStr1, new Vector3f(1f, 0f, 0f), 15, 15);
+
+		// HUD2: Ammo
+		String dispStr2 = "Ammo: " + currentAmmo + " / " + maxAmmo;
+		(engine.getHUDmanager()).setHUD2(dispStr2, new Vector3f(1f, 1f, 0f), 15, 45);
+
+		// HUD3: Active Power-Up
+		if (activePowerUpName != null && System.currentTimeMillis() < powerUpEndTime) {
+			String dispStr3 = "Power-Up: " + activePowerUpName;
+			(engine.getHUDmanager()).setHUD3(dispStr3, new Vector3f(0f, 1f, 1f), 15, 75);
+		} else {
+			activePowerUpName = null;
+			(engine.getHUDmanager()).setHUD3("", new Vector3f(0f, 1f, 1f), 15, 75); // Clear it
+		}
+
 
 		if (!initializedBoosts && isPowerUpAuthority) {
 			int counter = 0;
@@ -371,10 +386,10 @@ public class MyGame extends VariableFrameRateGame
 		} 
 
 		if (showHealthBar) {
-			playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 2.5f, 0f));
+			playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 1.5f, 0f));
 			float healthRatio = currentHealth / maxHealth;
-			float baseLength = 3.0f;
-			playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.1f, 0.1f));
+			float baseLength = 4.0f;
+			playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.2f, 0.2f));
 		} else {
 			playerHealthBar.setLocalScale(new Matrix4f().scaling(0f)); // Hide it safely
 		}
@@ -400,6 +415,20 @@ public class MyGame extends VariableFrameRateGame
 
 		for (GhostAvatar ghost : gm.getGhosts()) {
 			ghost.updateHeadlight();
+		}
+
+		if (isReloading) {
+			long elapsed = System.currentTimeMillis() - reloadStartTime;
+			if (elapsed >= reloadDuration) {
+				currentAmmo = maxAmmo;
+				isReloading = false;
+				System.out.println("Reload complete. Ammo refilled!");
+				(engine.getHUDmanager()).setHUD4("", new Vector3f(1f, 1f, 1f), 15, 105); // clear HUD
+			} else {
+				(engine.getHUDmanager()).setHUD4("Reloading...", new Vector3f(1f, 1f, 1f), 15, 105);
+			}
+		} else {
+			(engine.getHUDmanager()).setHUD4("", new Vector3f(1f, 1f, 1f), 15, 105); // clear if not reloading
 		}
 
 		// Step physics world
@@ -498,12 +527,12 @@ public class MyGame extends VariableFrameRateGame
 			nextPosition = null;
 		}
 
-		// Update health bar position and scale
-		playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 0.4f, 0f));
-		float healthRatio = currentHealth / maxHealth;
-		float baseLength = 0.25f;
-		playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.001f, 0.001f));
-		playerHealthBar.getRenderStates().setColor(new Vector3f(1f, 0f, 0f));
+		// // Update health bar position and scale
+		// playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 0.4f, 0f));
+		// float healthRatio = currentHealth / maxHealth;
+		// float baseLength = 0.25f;
+		// playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.001f, 0.001f));
+		// playerHealthBar.getRenderStates().setColor(new Vector3f(1f, 0f, 0f));
 
 		if (boosted && System.currentTimeMillis() >= boostEndTime) {
 			boosted = false;
@@ -620,6 +649,11 @@ public class MyGame extends VariableFrameRateGame
 			{
 				headlightOn = !headlightOn;
 				protClient.sendHeadlightState(headlightOn);
+				break;
+			}
+			case KeyEvent.VK_R: // Press 'R' to reload
+			{
+				reloadAmmo();
 				break;
 			}
 		}
@@ -931,6 +965,21 @@ public class MyGame extends VariableFrameRateGame
 		boostEndTime = System.currentTimeMillis() + 5000;
 		System.out.println("Speed boost activated");
 	}
+
+	public void setActivePowerUp(String name, long durationMillis) {
+		activePowerUpName = name;
+		powerUpEndTime = System.currentTimeMillis() + durationMillis;
+	}
+
+	public void reloadAmmo() {
+		if (!isReloading && currentAmmo < maxAmmo) {
+			isReloading = true;
+			reloadStartTime = System.currentTimeMillis();
+			(engine.getHUDmanager()).setHUD4("Reloading...", new Vector3f(1f, 1f, 1f), 15, 105);
+			System.out.println("Reloading...");
+		}
+	}
+
 	private void rotateTurretTowardsPlayer() {
 		Vector3f turretPos = turret.getWorldLocation();
 		Vector3f avatarPos = avatar.getWorldLocation();

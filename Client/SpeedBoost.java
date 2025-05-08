@@ -16,5 +16,6 @@ public class SpeedBoost extends PowerUp {
         if (!active) return;
         deactivate();
         game.activateSpeedBoost();
+        game.setActivePowerUp("Speed Boost", 5000);
     }
 }

@@ -14,5 +14,6 @@ public class ShieldPowerUp extends PowerUp {
         if (!active) return;
         deactivate();
         game.activateShield();
+        game.setActivePowerUp("Shield", 5000);
     }
 }
