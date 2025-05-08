@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.UUID;
 
+import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 import tage.networking.server.GameConnectionServer;
@@ -181,6 +182,30 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 						msg.append(",").append(messageTokens[i]);
 					}
 					sendPacket(msg.toString(), targetClient);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+
+			if (messageTokens[0].equals("turretRotate")) {
+				try { 
+					UUID senderID = UUID.fromString(messageTokens[1]);
+					StringBuilder rotateMsg = new StringBuilder("turretRotate");
+					for (int i = 1; i < messageTokens.length; i++) {
+						rotateMsg.append(", ").append(messageTokens[i]);
+					}
+					forwardPacketToAll(rotateMsg, senderID);
+				} catch (IOException e) {
+					System.err.println("[Server] Error forwarding turretRotate: " + e.getMessage());
+					e.printStackTrace();
+				}
+			}
+
+			if (messageTokens[0].equals("turretState")) {
+				try {
+					UUID senderID = UUID.fromString(messageTokens[1]);
+					String msg = String.join(",", messageTokens);
+					forwardPacketToAll(msg, senderID);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}

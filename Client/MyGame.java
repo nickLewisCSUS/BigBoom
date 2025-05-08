@@ -14,6 +14,7 @@ import java.awt.event.*;
 
 import java.io.*;
 import java.util.*;
+import java.util.List;
 import java.util.Random;
 import java.net.InetAddress;
 
@@ -46,7 +47,8 @@ public class MyGame extends VariableFrameRateGame
 	private double startTime, prevTime, elapsedTime, amt;
 
 	private GameObject avatar, x, y, z, playerHealthBar, shield, terrain, maze, speedBoost, turret, headlightNode;
-	private ObjShape ghostS, tankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, healthBoostS, turretS;
+	private AnimatedShape turretS;
+	private ObjShape ghostS, tankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, healthBoostS;
 	private TextureImage tankT, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, healthBoostT, turretT;
 
 	private Light light, headlight, healthSpotlight;
@@ -79,9 +81,8 @@ public class MyGame extends VariableFrameRateGame
 
 	private int battleField;
 	private PhysicsEngine physicsEngine;
-	private PhysicsObject avatarP, terrainP, speedBoostP;
+	private PhysicsObject avatarP, speedBoostP;
 
-	private Vector3f lastValidPosition;
 	public enum MovementDirection { NONE, FORWARD, BACKWARD }
 	private MovementDirection moveDirection = MovementDirection.NONE;
 	private Vector3f nextPosition = null;
@@ -92,6 +93,7 @@ public class MyGame extends VariableFrameRateGame
 	private float maxHealth = 100f;
 	
 	private ArrayList<PowerUp> powerUps = new ArrayList<>();
+	private ArrayList<GameObject> avatars = new ArrayList<>();
 	private boolean boosted = false;
 	private long boostEndTime = 0;
 	private boolean shieldActive = false;
@@ -111,6 +113,14 @@ public class MyGame extends VariableFrameRateGame
 
 	public boolean isBoosted() {
 		return boosted;
+	}
+
+	public TurretAIController getTurretAIController() {
+		return this.turretAI;
+	}
+
+	public ProtocolClient getProtocolClient() {
+		return this.protClient;
 	}
 
 	public MyGame(String serverAddress, int serverPort, String protocol)
@@ -133,8 +143,11 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void loadShapes()
-	{	turretS = new ImportedModel("turret1.obj");
-		//turretS.loadAnimation("scanning", "turret.rka");
+	{	//turretS = new ImportedModel("turret1.obj");
+		turretS = new AnimatedShape("turret.rkm", "turret.rks");
+		turretS.loadAnimation("SCAN", "turretScan.rka");
+		turretS.loadAnimation("ACTIVATE", "turretActivate.rka");
+		turretS.loadAnimation("DEACTIVATE", "turretDeactivate.rka");
 		ghostS = new Sphere();
 		tankS = new ImportedModel("tiger2.obj");
 		shieldS = new ImportedModel("sheildmodel.obj");
@@ -174,8 +187,6 @@ public class MyGame extends VariableFrameRateGame
         buildMaze();
         buildAvatar();
 
-		lastValidPosition = avatar.getWorldLocation();
-
 		// build speed powerup
 		speedBoost = new GameObject(GameObject.root(), speedBoostS, speedBoostT);
 		initialTranslation = (new Matrix4f()).translation(0f,0f,-1f);
@@ -199,7 +210,7 @@ public class MyGame extends VariableFrameRateGame
 
 		// build turret object
 		turret = new GameObject(GameObject.root(), turretS, turretT);
-		initialTranslation = (new Matrix4f()).translation(-10f,0f,2f);
+		initialTranslation = (new Matrix4f()).translation(-40f,0f,2f);
 		turret.setLocalTranslation(initialTranslation);
 		initialScale = (new Matrix4f()).scaling(0.5f, 0.5f, 0.5f);
 		turret.setLocalScale(initialScale); 
@@ -256,7 +267,6 @@ public class MyGame extends VariableFrameRateGame
 		turretSound.setRollOff(2.0f);
 	}
 
-
 	@Override
 	public void initializeGame()
 	{	prevTime = System.currentTimeMillis();
@@ -312,7 +322,6 @@ public class MyGame extends VariableFrameRateGame
 			System.out.println("Warning: Avatar is null during physics setup!");
 		}
 		
-		
 		buildPowerUps();
 
 		// Positon the camera
@@ -322,8 +331,6 @@ public class MyGame extends VariableFrameRateGame
 		engine.enablePhysicsWorldRender();
 
 		im = engine.getInputManager();
-		
- 
 
 		// initial sound settings
 		turretSound.setLocation(turret.getWorldLocation());
@@ -347,8 +354,7 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void update()
-	{	Matrix4f  currentTranslation, currentRotation;
-		elapsedTime = System.currentTimeMillis() - prevTime;
+	{	elapsedTime = System.currentTimeMillis() - prevTime;
 		prevTime = System.currentTimeMillis();
 		amt = elapsedTime * 0.03;
 		Camera c = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
@@ -375,7 +381,7 @@ public class MyGame extends VariableFrameRateGame
 		}
 
 
-		if (!initializedBoosts && isPowerUpAuthority) {
+		if (!initializedBoosts && (isPowerUpAuthority || !isClientConnected)) {
 			int counter = 0;
 			for (PowerUp boost : powerUps) {
 				counter++;
@@ -463,6 +469,8 @@ public class MyGame extends VariableFrameRateGame
 			tempTransform = toDoubleArray(combined.get(vals));
 			speedBoost.getPhysicsObject().setTransform(tempTransform);
 		}
+		
+		turretS.updateAnimation();
 		turretAI.update((float) elapsedTime);
 
 		for (PowerUpLight pul : powerUpLights) {
@@ -794,6 +802,7 @@ public class MyGame extends VariableFrameRateGame
 
 		headlightNode = new GameObject(avatar);
 		headlightNode.setLocalTranslation(new Matrix4f().translation(0f, 0.3f, 0f));
+		avatars.add(avatar);
     }
 
 	private void updateAvatarHeight() {
@@ -1005,5 +1014,27 @@ public class MyGame extends VariableFrameRateGame
 		turret.setLocalTranslation(currentTranslation);
 		turret.setLocalScale(currentScale);
 	}
+
+	public List<GameObject> getAllAvatars() {
+		return avatars;
+	}
+
+	public GameObject getClosestAvatar(GameObject from) {
+		float minDist = Float.MAX_VALUE;
+		GameObject closest = null;
+		for (GameObject avatar : getAllAvatars()) {
+			float dist = avatar.getWorldLocation().distance(from.getWorldLocation());
+			if (dist < minDist) {
+				minDist = dist;
+				closest = avatar;
+			}
+		}
+		return closest;
+	}
+
+	public boolean isClosestToTurret() {
+		GameObject closest = getClosestAvatar(getTurret());
+		return closest == getAvatar();
+	}	
 
 }

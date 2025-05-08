@@ -6,7 +6,7 @@ import org.joml.*;
 import java.util.List;
 import java.util.Random;
 import java.lang.Math;
-import a2.*;
+import Client.*;
 
 /**
  * **Enemy** represents a dynamic NPC that interacts with the player based on their state.

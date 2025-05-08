@@ -1,16 +1,18 @@
 package Client;
 
 import tage.ai.behaviortrees.BTCondition;
-import Client.TurretAIController.TurretState;
 import tage.GameObject;
+import org.joml.Vector3f;
 
-public class PlayerFarCondition extends BTCondition {
+import Client.TurretAIController.TurretState;
+
+public class PlayerVeryNearCondition extends BTCondition {
     private MyGame game;
     private GameObject turret;
     private ActivateAction activateAction;
     private TurretAIController controller;
 
-    public PlayerFarCondition(boolean toNegate, MyGame game, GameObject turret,TurretAIController controller, ActivateAction activateAction) {
+    public PlayerVeryNearCondition(boolean toNegate, MyGame game, GameObject turret,TurretAIController controller, ActivateAction activateAction) {
         super(toNegate);
         this.game = game;
         this.turret = turret; 
@@ -18,19 +20,18 @@ public class PlayerFarCondition extends BTCondition {
         this.activateAction = activateAction;
     }
 
-    @Override
     protected boolean check() {
+        turret = game.getTurret();
         GameObject closest = game.getClosestAvatar(turret);
-        if (closest == null) return true;
+        if (closest == null) return false;
 
         float dist = closest.getWorldLocation().distance(turret.getWorldLocation());
-        boolean inRange = (dist > 30f);
+        boolean inRange = (dist <= 10.0f);
         System.out.println("Previous State: " + controller.getPreviousState());
-        if (inRange && controller.getPreviousState() != TurretAIController.TurretState.FAR) {
-            controller.setPreviousState(TurretState.FAR);
-            activateAction.setActivateAnimationStarted(false);
+        if (inRange && controller.getPreviousState() != TurretAIController.TurretState.VERY_NEAR) {
+            controller.setPreviousState(TurretState.VERY_NEAR);
             activateAction.setScanActivationStarted(false);
-            System.out.println("DEBUG [PlayerFarCondition]: Closest distance = " + dist + ", In range: " + (dist > 30.0f));
+            System.out.println("DEBUG [PlayerVeryNearCondition]: Closest distance = " + dist + ", In range: " + (dist <= 10.0f));
         }
         return inRange;
     }
