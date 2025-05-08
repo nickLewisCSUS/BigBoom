@@ -140,7 +140,7 @@ public class MyGame extends VariableFrameRateGame
 		turretS.loadAnimation("ACTIVATE", "turretActivate.rka");
 		turretS.loadAnimation("DEACTIVATE", "turretDeactivate.rka");
 		ghostS = new Sphere();
-		tankS = new ImportedModel("tiger2.obj");
+		tankS = new Sphere();
 		shieldS = new ImportedModel("sheildmodel.obj");
 		linxS = new Line(new Vector3f(0f,0f,0f), new Vector3f(3f,0f,0f));
 		linyS = new Line(new Vector3f(0f,0f,0f), new Vector3f(0f,3f,0f));
