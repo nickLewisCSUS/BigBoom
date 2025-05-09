@@ -49,7 +49,7 @@ public class MyGame extends VariableFrameRateGame
 	private GameObject avatar, x, y, z, playerHealthBar, shield, terrain, maze, speedBoost, turret, headlightNode;
 	private AnimatedShape turretS;
 	private ObjShape ghostS, tankS, slowTankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, healthBoostS;
-	private TextureImage tankT, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, healthBoostT, turretT;
+	private TextureImage tankT, slowTankT, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, healthBoostT, turretT;
 
 	private boolean useSlowTank = false;
 
@@ -172,6 +172,7 @@ public class MyGame extends VariableFrameRateGame
 	@Override
 	public void loadTextures()
 	{	tankT = new TextureImage("metal.jpg");
+		slowTankT = new TextureImage("terrain_texture1.png");
 		shieldT = new TextureImage("sheild.jpg");
 		ghostT = new TextureImage("metal.jpg");
 		terrainHeightMap = new TextureImage("terrain_height.png");
@@ -780,7 +781,7 @@ public class MyGame extends VariableFrameRateGame
 
     private void buildAvatar() {
         if (useSlowTank) {
-			avatar = new GameObject(GameObject.root(), slowTankS, tankT);
+			avatar = new GameObject(GameObject.root(), slowTankS, terrainT);
 			avatar.setLocalScale(new Matrix4f().scaling(1.5f)); // slower = bigger
 		} else {
 			avatar = new GameObject(GameObject.root(), tankS, tankT);
@@ -802,6 +803,21 @@ public class MyGame extends VariableFrameRateGame
 		headlightNode.setLocalTranslation(new Matrix4f().translation(0f, 0.3f, 0f));
 		avatars.add(avatar);
     }
+
+	public ObjShape getSlowTankShape() {
+		return slowTankS;
+	}
+	
+	public ObjShape getFastTankShape() {
+		return tankS;
+	}
+	
+	public TextureImage getFastTankTexture() {
+		return tankT;
+	}
+	public TextureImage getSlowTankTexture() {
+		return slowTankT;
+	}
 
 	private void updateAvatarHeight() {
 		Vector3f loc = avatar.getWorldLocation();

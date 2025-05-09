@@ -19,17 +19,27 @@ public class GhostManager
 	{	game = (MyGame)vfrg;
 	}
 	
-	public void createGhostAvatar(UUID id, Vector3f position) throws IOException
-	{	System.out.println("adding ghost with ID --> " + id);
-		ObjShape s = game.getGhostShape();
-		TextureImage t = game.getGhostTexture();
-		GhostAvatar newAvatar = new GhostAvatar(id, s, t, position, game.getEngine());
-		Matrix4f initialScale = (new Matrix4f()).scaling(1.0f);
+	public void createGhostAvatar(UUID id, Vector3f position, String avatarType) throws IOException {
+		System.out.println("adding ghost with ID --> " + id + " and avatarType --> " + avatarType);
+	
+		ObjShape shape;
+		TextureImage texture;
+	
+		if (avatarType.equalsIgnoreCase("slow")) {
+			shape = game.getSlowTankShape(); // Or use game.getSlowTankShape() if available
+			texture = game.getSlowTankTexture();  // Use a different texture if you want
+		} else {
+			shape = game.getFastTankShape(); // default
+			texture = game.getFastTankTexture();
+		}
+	
+		GhostAvatar newAvatar = new GhostAvatar(id, shape, texture, position, game.getEngine());
+		Matrix4f initialScale = new Matrix4f().scaling(avatarType.equalsIgnoreCase("slow") ? 1.5f : 1.0f);
 		newAvatar.setLocalScale(initialScale);
 		newAvatar.createHealthBar(game.getPlayerHealthBarShape(), game.getPlayerHealthBarTexture());
 		ghostAvatars.add(newAvatar);
 		newAvatar.initHeadlight();
-
+	
 		game.getEngine().getLightManager().loadLightArraySSBO();
 	}
 	

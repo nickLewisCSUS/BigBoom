@@ -16,6 +16,7 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 {
 
 	private Map<UUID, Integer> killCounts = new HashMap<>();
+	private Map<UUID, String> clientAvatarTypes = new HashMap<>();
 
 	public GameServerUDP(int localPort) throws IOException 
 	{	super(localPort, ProtocolType.UDP);
@@ -70,7 +71,11 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 			if(messageTokens[0].compareTo("create") == 0)
 			{	UUID clientID = UUID.fromString(messageTokens[1]);
 				String[] pos = {messageTokens[2], messageTokens[3], messageTokens[4]};
-				sendCreateMessages(clientID, pos);
+				String avatarType = messageTokens[5];
+
+				clientAvatarTypes.put(clientID, avatarType);
+
+				sendCreateMessages(clientID, pos, avatarType);
 				sendWantsDetailsMessages(clientID);
 			}
 			
@@ -253,12 +258,13 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 	// connected to the server. 
 	// Message Format: (create,remoteId,x,y,z) where x, y, and z represent the position
 
-	public void sendCreateMessages(UUID clientID, String[] position)
+	public void sendCreateMessages(UUID clientID, String[] position, String avatarType)
 	{	try 
 		{	String message = new String("create," + clientID.toString());
 			message += "," + position[0];
 			message += "," + position[1];
-			message += "," + position[2];	
+			message += "," + position[2];
+			message += "," + avatarType;	
 			forwardPacketToAll(message, clientID);
 		} 
 		catch (IOException e) 
@@ -273,10 +279,13 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 
 	public void sendDetailsForMessage(UUID clientID, UUID remoteId, String[] position)
 	{	try 
-		{	String message = new String("dsfr," + remoteId.toString());
+		{	String avatarType = clientAvatarTypes.getOrDefault(remoteId, "fast");
+			String message = new String("dsfr," + remoteId.toString());
 			message += "," + position[0];
 			message += "," + position[1];
-			message += "," + position[2];	
+			message += "," + position[2];
+			message += "," + avatarType;
+
 			sendPacket(message, clientID);
 		} 
 		catch (IOException e) 
