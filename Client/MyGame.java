@@ -26,6 +26,7 @@ import net.java.games.input.*;
 import net.java.games.input.Component.Identifier;
 import net.java.games.input.Component.Identifier.*;
 import tage.networking.IGameConnection.ProtocolType;
+import tage.nodeControllers.RotationController;
 import tage.physics.*;
 import tage.physics.JBullet.*;
 
@@ -46,9 +47,9 @@ public class MyGame extends VariableFrameRateGame
 	private Matrix4f initialTranslation, initialRotation, initialScale;
 	private double startTime, prevTime, elapsedTime, amt;
 
-	private GameObject avatar, x, y, z, playerHealthBar, shield, terrain, maze, speedBoost, turret, headlightNode;
-	private AnimatedShape turretS;
-	private ObjShape ghostS, tankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, healthBoostS;
+	private GameObject avatar, x, y, z, playerHealthBar, shield, terrain, maze, speedBoost, turret, headlightNode, tankTurret, tankGun, gunPivot;
+	//private AnimatedShape turretS;
+	private ObjShape ghostS, tankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, healthBoostS, turretS, tankBodyS, tankTurretS, tankGunS, tankGunPivotS;
 	private TextureImage tankT, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, healthBoostT, turretT;
 
 	private Light light, headlight, healthSpotlight;
@@ -94,6 +95,13 @@ public class MyGame extends VariableFrameRateGame
 	private boolean initializedBoosts = false;
 	private boolean isPowerUpAuthority = false;
 
+	private float gunPitchAngle = 0f;
+	private float turretYawAngle = 0f;
+	private final float GUN_PITCH_MIN = (float)Math.toRadians(-10);
+	private final float GUN_PITCH_MAX = (float)Math.toRadians(20);
+
+    private RotationController rotCtrl = new RotationController(engine, new Vector3f(0,1,0), 0.001f);
+
 	public boolean isPowerUpAuthority() {
 		return isPowerUpAuthority;
 	}
@@ -134,13 +142,13 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void loadShapes()
-	{	//turretS = new ImportedModel("turret1.obj");
-		turretS = new AnimatedShape("turret.rkm", "turret.rks");
-		turretS.loadAnimation("SCAN", "turretScan.rka");
-		turretS.loadAnimation("ACTIVATE", "turretActivate.rka");
-		turretS.loadAnimation("DEACTIVATE", "turretDeactivate.rka");
+	{	turretS = new ImportedModel("turret1.obj");
+		// turretS = new AnimatedShape("turret.rkm", "turret.rks");
+		// turretS.loadAnimation("SCAN", "turretScan.rka");
+		// turretS.loadAnimation("ACTIVATE", "turretActivate.rka");
+		// turretS.loadAnimation("DEACTIVATE", "turretDeactivate.rka");
 		ghostS = new Sphere();
-		tankS = new Sphere();
+		//tankS = new ImportedModel("tank.obj");
 		shieldS = new ImportedModel("sheildmodel.obj");
 		linxS = new Line(new Vector3f(0f,0f,0f), new Vector3f(3f,0f,0f));
 		linyS = new Line(new Vector3f(0f,0f,0f), new Vector3f(0f,3f,0f));
@@ -150,6 +158,11 @@ public class MyGame extends VariableFrameRateGame
 		speedBoostS = new ImportedModel("speedboost.obj");
 		healthBoostS = new ImportedModel("healthBoost.obj");
 		playerHealthBarS = new Cube();
+        tankBodyS = new ImportedModel("tankBody.obj");
+        tankTurretS = new ImportedModel("tankTurret.obj");
+        tankGunS = new ImportedModel("tankGun.obj"); 
+        tankGunPivotS = new ImportedModel("tankGunPivot.obj"); 
+
 	}
 
 	@Override
@@ -328,7 +341,7 @@ public class MyGame extends VariableFrameRateGame
 		setEarParameters();
 		turretSound.play();
 
-		turretAI = new TurretAIController(this);
+		// turretAI = new TurretAIController(this);
 	}
 
 	public GameObject getAvatar() { return avatar; }
@@ -421,10 +434,10 @@ public class MyGame extends VariableFrameRateGame
 			avatar.setLocalLocation(avatarPos);
 			
 			// --- Manually build and push avatar transform into collider ---
-			Matrix4f combined = new Matrix4f();
-			combined.identity();
+			Matrix4f combined = new Matrix4f().identity();
 			Matrix4f rotationCorrection = new Matrix4f().rotationY((float)Math.toRadians(90f));
-			combined.mul(avatar.getLocalRotation());
+			Matrix4f visualRotation = avatar.getLocalRotation();
+			combined.mul(visualRotation);
 			combined.mul(rotationCorrection);
 			combined.setTranslation(avatar.getWorldLocation());
 			double[] tempTransform = toDoubleArray(combined.get(vals));
@@ -441,8 +454,8 @@ public class MyGame extends VariableFrameRateGame
 			speedBoost.getPhysicsObject().setTransform(tempTransform);
 		}
 		
-		turretS.updateAnimation();
-		turretAI.update((float) elapsedTime);
+		// turretS.updateAnimation();
+		// turretAI.update((float) elapsedTime);
 
 		for (PowerUpLight pul : powerUpLights) {
 			pul.spotlight.setLocation(pul.holder.getWorldLocation());
@@ -454,7 +467,6 @@ public class MyGame extends VariableFrameRateGame
         physicsEngine.update(0.016f); // 60Hz step
 		if (terrainFollowMode) {
 			updateAvatarHeight();
-			updateAvatarPhysics();
 			updateTurretHeight();
 		}
 
@@ -606,16 +618,22 @@ public class MyGame extends VariableFrameRateGame
 			}
 			case KeyEvent.VK_UP:
 			{
-				Vector3f right = avatar.getWorldRightVector();
-				Matrix4f rotation = new Matrix4f().rotate(.01f, right.x(), right.y(), right.z());
-				avatar.setLocalRotation(rotation.mul(avatar.getLocalRotation()));
+				updateGunPitch((float)Math.toRadians(1.5));
 				break;
 			}
 			case KeyEvent.VK_DOWN:
 			{
-				Vector3f right = avatar.getWorldRightVector();
-				Matrix4f rotation = new Matrix4f().rotate(-.01f, right.x(), right.y(), right.z());
-				avatar.setLocalRotation(rotation.mul(avatar.getLocalRotation()));
+				updateGunPitch((float)Math.toRadians(-1.5));
+				break;
+			}			
+			case KeyEvent.VK_LEFT:
+			{
+				updateTurretYaw((float)Math.toRadians(1.5));
+				break;
+			}
+			case KeyEvent.VK_RIGHT:
+			{
+				updateTurretYaw((float)Math.toRadians(-1.5));
 				break;
 			}
 			case KeyEvent.VK_SPACE:
@@ -751,9 +769,28 @@ public class MyGame extends VariableFrameRateGame
     }
 
     private void buildAvatar() {
-        avatar = new GameObject(GameObject.root(), tankS, tankT);
-		avatar.setLocalLocation(new Vector3f(3,0,-3));
-		avatar.setLocalScale(new Matrix4f().scaling(0.5f, 0.5f, 0.5f)); // Scale used for tiger2.obj
+        // avatar = new GameObject(GameObject.root(), tankS, tankT);
+		// avatar.setLocalLocation(new Vector3f(3,0,-3));
+		// avatar.setLocalScale(new Matrix4f().scaling(0.1f, 0.1f, 0.1f)); // Scale used for tiger2.obj
+		
+        // Tank Body (parent)
+        avatar = new GameObject(GameObject.root(), tankBodyS, playerHealthBarT);
+        avatar.setLocalTranslation(new Matrix4f().translation(3,0,-3));
+        avatar.setLocalScale(new Matrix4f().scaling(0.1f));
+
+        // Turret base (child of tank body)
+        tankTurret = new GameObject(avatar, tankTurretS, playerHealthBarT);
+        tankTurret.setLocalTranslation(new Matrix4f().translation(0f,0.25f,0.4f));
+        tankTurret.propagateTranslation(true);
+        tankTurret.propagateRotation(true);
+		tankTurret.applyParentRotationToPosition(true);
+
+        // Gun (child of turret base)
+        tankGun = new GameObject(tankTurret, tankGunS, playerHealthBarT);
+        tankGun.setLocalTranslation(new Matrix4f().translation(0,0.25f,0.7f));
+        tankGun.propagateTranslation(true);
+        tankGun.propagateRotation(true);
+		tankGun.applyParentRotationToPosition(true);
 
 		avatar.lookAt(new Vector3f(0,0,0));
 
@@ -776,11 +813,6 @@ public class MyGame extends VariableFrameRateGame
 		float height = terrain.getHeight(loc.x(), loc.z());
 		Vector3f corrected = new Vector3f(loc.x(), height - 9f, loc.z());
 		avatar.setLocalLocation(corrected);
-		
-		// Update physics position
-		Matrix4f translation = avatar.getLocalTranslation();
-		double[] transform = toDoubleArray(translation.get(vals));
-		avatar.getPhysicsObject().setTransform(transform);
 	}
 
 	private void updateTurretHeight() {
@@ -793,12 +825,6 @@ public class MyGame extends VariableFrameRateGame
 	public GameObject getTurret() {
 		return turret;
 	}
-
-	
-    private void updateAvatarPhysics() {
-        Matrix4f translation = new Matrix4f().set(toFloatArray(avatar.getPhysicsObject().getTransform()));
-        avatar.setLocalTranslation(translation);
-    }
 
     public double[] toDoubleArray(float[] arr) {
 		double[] result = new double[arr.length];
@@ -830,6 +856,7 @@ public class MyGame extends VariableFrameRateGame
 				0.7f
 			);
 			speedObj.setPhysicsObject(speedPhys);
+            rotCtrl.addTarget(speedObj);
 			speedPhys = (engine.getSceneGraph().addPhysicsSphere(0, toDoubleArray(speedObj.getLocalTranslation().get(new float[16])), 0.7f));	
 			speedObj.setPhysicsObject(speedPhys);
 
@@ -846,6 +873,7 @@ public class MyGame extends VariableFrameRateGame
 				0.7f
 			);
 			healthObj.setPhysicsObject(healthPhys);
+            rotCtrl.addTarget(healthObj);
 			healthPhys = (engine.getSceneGraph().addPhysicsSphere(0, toDoubleArray(healthObj.getLocalTranslation().get(new float[16])), 0.7f));	
 			healthObj.setPhysicsObject(healthPhys);
 
@@ -863,6 +891,7 @@ public class MyGame extends VariableFrameRateGame
 				0.7f
 			);
 			sheildObj.setPhysicsObject(sheildPhys);
+            rotCtrl.addTarget(sheildObj);
 			sheildPhys = (engine.getSceneGraph().addPhysicsSphere(0, toDoubleArray(sheildObj.getLocalTranslation().get(new float[16])), 0.7f));	
 			sheildObj.setPhysicsObject(sheildPhys);
 
@@ -873,6 +902,8 @@ public class MyGame extends VariableFrameRateGame
 			addSpotlightAbove(healthObj, new Vector3f(1f, 0f, 0f));    // red for health
 			addSpotlightAbove(sheildObj, new Vector3f(1f, 1f, 0f));    // yellow for shield
 
+            engine.getSceneGraph().addNodeController(rotCtrl);
+            rotCtrl.enable();
 		}
 		initializedBoosts = false;
 	}
@@ -987,5 +1018,28 @@ public class MyGame extends VariableFrameRateGame
 		GameObject closest = getClosestAvatar(getTurret());
 		return closest == getAvatar();
 	}	
+
+	private void updateGunPitch(float deltaAngle) {
+		gunPitchAngle += deltaAngle;
+
+		// Clamp pitch between -45 and +20 degrees
+		gunPitchAngle = Math.max((float)Math.toRadians(-45), Math.min((float)Math.toRadians(20), gunPitchAngle));
+
+		// Reapply rotation
+		Matrix4f pitch = new Matrix4f().rotationX(gunPitchAngle);
+		tankGun.setLocalRotation(pitch);
+
+	}
+
+	private void updateTurretYaw(float deltaAngle) {
+		turretYawAngle += deltaAngle;
+
+		// Clamp pitch between -45 and +20 degrees
+		turretYawAngle = Math.max((float)Math.toRadians(-180), Math.min((float)Math.toRadians(180), turretYawAngle));
+
+		// Reapply rotation
+		Matrix4f yaw = new Matrix4f().rotationY(turretYawAngle);
+		tankTurret.setLocalRotation(yaw);
+	}
 
 }
