@@ -24,7 +24,7 @@ public class GhostManager
 		ObjShape s = game.getGhostShape();
 		TextureImage t = game.getGhostTexture();
 		GhostAvatar newAvatar = new GhostAvatar(id, s, t, position, game.getEngine());
-		Matrix4f initialScale = (new Matrix4f()).scaling(0.25f);
+		Matrix4f initialScale = (new Matrix4f()).scaling(1.0f);
 		newAvatar.setLocalScale(initialScale);
 		newAvatar.createHealthBar(game.getPlayerHealthBarShape(), game.getPlayerHealthBarTexture());
 		ghostAvatars.add(newAvatar);

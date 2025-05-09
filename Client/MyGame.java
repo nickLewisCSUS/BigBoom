@@ -139,8 +139,8 @@ public class MyGame extends VariableFrameRateGame
 		turretS.loadAnimation("SCAN", "turretScan.rka");
 		turretS.loadAnimation("ACTIVATE", "turretActivate.rka");
 		turretS.loadAnimation("DEACTIVATE", "turretDeactivate.rka");
-		ghostS = new Sphere();
-		tankS = new Sphere();
+		ghostS = new ImportedModel("tank3.obj");
+		tankS = new ImportedModel("tank3.obj");
 		shieldS = new ImportedModel("sheildmodel.obj");
 		linxS = new Line(new Vector3f(0f,0f,0f), new Vector3f(3f,0f,0f));
 		linyS = new Line(new Vector3f(0f,0f,0f), new Vector3f(0f,3f,0f));
@@ -154,9 +154,9 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void loadTextures()
-	{	tankT = new TextureImage("tanktext.png");
+	{	tankT = new TextureImage("metal.jpg");
 		shieldT = new TextureImage("sheild.jpg");
-		ghostT = new TextureImage("redDolphin.jpg");
+		ghostT = new TextureImage("metal.jpg");
 		terrainHeightMap = new TextureImage("terrain_height.png");
 		terrainT = new TextureImage("terrain_texture1.png");
 		mazeHeightMap = new TextureImage("maze.png");
@@ -753,7 +753,7 @@ public class MyGame extends VariableFrameRateGame
     private void buildAvatar() {
         avatar = new GameObject(GameObject.root(), tankS, tankT);
 		avatar.setLocalLocation(new Vector3f(3,0,-3));
-		avatar.setLocalScale(new Matrix4f().scaling(0.5f, 0.5f, 0.5f)); // Scale used for tiger2.obj
+		avatar.setLocalScale(new Matrix4f().scaling(1.0f, 1.0f, 1.0f)); // Scale used for tank3
 
 		avatar.lookAt(new Vector3f(0,0,0));
 
@@ -774,7 +774,7 @@ public class MyGame extends VariableFrameRateGame
 	private void updateAvatarHeight() {
 		Vector3f loc = avatar.getWorldLocation();
 		float height = terrain.getHeight(loc.x(), loc.z());
-		Vector3f corrected = new Vector3f(loc.x(), height - 9f, loc.z());
+		Vector3f corrected = new Vector3f(loc.x(), height - 10f, loc.z());
 		avatar.setLocalLocation(corrected);
 		
 		// Update physics position
