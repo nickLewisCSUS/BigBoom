@@ -48,8 +48,10 @@ public class MyGame extends VariableFrameRateGame
 
 	private GameObject avatar, x, y, z, playerHealthBar, shield, terrain, maze, speedBoost, turret, headlightNode;
 	private AnimatedShape turretS;
-	private ObjShape ghostS, tankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, healthBoostS;
+	private ObjShape ghostS, tankS, slowTankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, healthBoostS;
 	private TextureImage tankT, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, healthBoostT, turretT;
+
+	private boolean useSlowTank = false;
 
 	private Light light, headlight, healthSpotlight;
 	private boolean headlightOn = true;
@@ -133,10 +135,18 @@ public class MyGame extends VariableFrameRateGame
 
 	public static void main(String[] args)
 	{	MyGame game = new MyGame(args[0], Integer.parseInt(args[1]), args[2]);
-		engine = new Engine(game);
-		game.initializeSystem();
-		game.game_loop();
-	}
+
+		// Ask user
+		if (args.length > 3 && args[3].equalsIgnoreCase("slow")) {
+			game.setUseSlowTank(true);
+			System.out.println("Slow tank selected via args");
+		} else {
+			System.out.println("Fast tank selected (default)");
+		}
+			engine = new Engine(game);
+			game.initializeSystem();
+			game.game_loop();
+		}
 
 	@Override
 	public void loadShapes()
@@ -147,6 +157,7 @@ public class MyGame extends VariableFrameRateGame
 		turretS.loadAnimation("DEACTIVATE", "turretDeactivate.rka");
 		ghostS = new ImportedModel("tank3.obj");
 		tankS = new ImportedModel("tank3.obj");
+		slowTankS = new ImportedModel("tank3.obj");
 		shieldS = new ImportedModel("sheildmodel.obj");
 		linxS = new Line(new Vector3f(0f,0f,0f), new Vector3f(3f,0f,0f));
 		linyS = new Line(new Vector3f(0f,0f,0f), new Vector3f(0f,3f,0f));
@@ -710,6 +721,10 @@ public class MyGame extends VariableFrameRateGame
 			protClient.processPackets();
 	}
 
+	public void setUseSlowTank(boolean val) {
+		this.useSlowTank = val;
+	}
+
 	public void setTurretShouldRotate(boolean shouldRotate) {
 		turretShouldRotate = shouldRotate;
 	}
@@ -764,10 +779,14 @@ public class MyGame extends VariableFrameRateGame
     }
 
     private void buildAvatar() {
-        avatar = new GameObject(GameObject.root(), tankS, tankT);
-		avatar.setLocalLocation(new Vector3f(3,0,-3));
-		avatar.setLocalScale(new Matrix4f().scaling(1.0f, 1.0f, 1.0f)); // Scale used for tank3
-
+        if (useSlowTank) {
+			avatar = new GameObject(GameObject.root(), slowTankS, tankT);
+			avatar.setLocalScale(new Matrix4f().scaling(1.5f)); // slower = bigger
+		} else {
+			avatar = new GameObject(GameObject.root(), tankS, tankT);
+			avatar.setLocalScale(new Matrix4f().scaling(1.0f));
+		}
+		avatar.setLocalLocation(new Vector3f(3, 0, -3));
 		avatar.lookAt(new Vector3f(0,0,0));
 
 		Matrix4f correctedTransform = new Matrix4f();
@@ -923,6 +942,10 @@ public class MyGame extends VariableFrameRateGame
 
 	public void updateScoreboard(Map<UUID, Integer> newBoard) {
 		scoreboard = newBoard;
+	}
+
+	public boolean isUsingSlowTank() {
+		return useSlowTank;
 	}
 	
 	public ArrayList<PowerUp> getPowerUps() {
