@@ -70,6 +70,9 @@ public class MyGame extends VariableFrameRateGame
 
 	private IAudioManager audioMgr;
 	private Sound turretSound;
+	private Sound ambientSound;
+	private long ambientFadeStart = 0;
+	private boolean isFadingIn = true;
 
 	private String serverAddress;
 	private int serverPort;
@@ -274,6 +277,12 @@ public class MyGame extends VariableFrameRateGame
 		turretSound.setMaxDistance(50.0f);
 		turretSound.setMinDistance(2.0f);
 		turretSound.setRollOff(2.0f);
+
+		AudioResource ambientRes = audioMgr.createAudioResource("backgroundAmbience.wav", AudioResourceType.AUDIO_SAMPLE);
+		Sound ambientSound = new Sound(ambientRes, SoundType.SOUND_MUSIC, 10, true); // loop, volume 70%
+		ambientSound.initialize(audioMgr);
+		ambientSound.play();
+		ambientFadeStart = System.currentTimeMillis();
 	}
 
 	@Override
@@ -386,7 +395,7 @@ public class MyGame extends VariableFrameRateGame
 		if (showShieldHUD)     hudText.append("Shiel  ");
 		if (showHealthBoostHUD) hudText.append("Healed  ");
 
-		Vector3f hudColor = new Vector3f(0.9f, 0.6f, 0.1f); // warm orange
+		Vector3f hudColor = new Vector3f(0.9f, 0.6f, 0.1f); 
 		(engine.getHUDmanager()).setHUD3(hudText.toString(), hudColor, 25, 40);
 
 		if (!initializedBoosts && (isPowerUpAuthority || !isClientConnected)) {
@@ -487,6 +496,17 @@ public class MyGame extends VariableFrameRateGame
 
 		if (turretShouldRotate) {
 			rotateTurretTowardsPlayer();
+		}
+
+		if (isFadingIn && ambientSound != null) {
+			long timeSinceStart = System.currentTimeMillis() - ambientFadeStart;
+			int targetVolume = (int)(timeSinceStart / 100); // e.g., every 100ms increase 1 volume unit
+			if (targetVolume >= 70) {
+				ambientSound.setVolume(70); // Max volume
+				isFadingIn = false;
+			} else {
+				ambientSound.setVolume(targetVolume);
+			}
 		}
 		
 

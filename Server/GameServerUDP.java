@@ -42,6 +42,9 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 					System.out.println("Client size:" + (getClients().size() == 1));
 					sendJoinedMessage(clientID, isFirst);
 
+					killCounts.put(clientID, 0);
+					broadcastScoreboard();
+
 					// Tell the power-up authority to share power-up positions with this new client
 					if (getClients().size() > 1) {
 						UUID firstClient = getClients().keySet().iterator().next(); // assume first client is authority
@@ -246,6 +249,10 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 	{	try 
 		{	String message = new String("bye," + clientID.toString());
 			forwardPacketToAll(message, clientID);
+
+			killCounts.remove(clientID);
+			clientAvatarTypes.remove(clientID);
+			broadcastScoreboard();
 		} 
 		catch (IOException e) 
 		{	e.printStackTrace();
@@ -368,7 +375,9 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 			sb.append(",").append(entry.getKey()).append(":").append(entry.getValue());
 		}
 		try {
-			forwardPacketToAll(sb.toString(), null);
+			for (UUID clientID : getClients().keySet()) {
+			sendPacket(sb.toString(), clientID);  
+		}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

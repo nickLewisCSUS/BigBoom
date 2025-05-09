@@ -67,8 +67,12 @@ public class HUDmanager
 		glut.glutBitmapString(HUD1font, HUD1string);
 
 		gl4bc.glColor3f(HUD2color[0], HUD2color[1], HUD2color[2]);
-		gl4bc.glWindowPos2d (HUD2x, HUD2y);
-		glut.glutBitmapString (HUD2font, HUD2string);
+		String[] lines2 = HUD2string.split("\n");
+		int lineHeight2 = 20; // adjust as needed for font
+		for (int i = 0; i < lines2.length; i++) {
+			gl4bc.glWindowPos2d(HUD2x, HUD2y - (i * lineHeight2));
+			glut.glutBitmapString(HUD2font, lines2[i]);
+		}
 		
 		gl4bc.glColor3f(HUD3color[0], HUD3color[1], HUD3color[2]);
 		gl4bc.glWindowPos2d (HUD3x, HUD3y);
