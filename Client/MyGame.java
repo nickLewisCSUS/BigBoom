@@ -55,6 +55,10 @@ public class MyGame extends VariableFrameRateGame
 	private boolean headlightOn = true;
 	private ArrayList<PowerUpLight> powerUpLights = new ArrayList<>();
 
+	private boolean showSpeedBoostHUD = false;
+	private boolean showShieldHUD = false;
+	private boolean showHealthBoostHUD = false;
+
 	private boolean turretShouldRotate = false;
 	private TurretAIController turretAI;
 
@@ -354,17 +358,13 @@ public class MyGame extends VariableFrameRateGame
 		
 		// build and set HUD
 		int elapsTimeSec = Math.round((float)(System.currentTimeMillis()-startTime)/1000.0f);
-		String elapsTimeStr = Integer.toString(elapsTimeSec);
-		String counterStr = Integer.toString(counter);
-		String dispStr1 = "Time = " + elapsTimeStr;
-		String dispStr2 = "camera position = "
-			+ (c.getLocation()).x()
-			+ ", " + (c.getLocation()).y()
-			+ ", " + (c.getLocation()).z();
-		Vector3f hud1Color = new Vector3f(1,0,0);
-		Vector3f hud2Color = new Vector3f(1,1,1);
-		(engine.getHUDmanager()).setHUD1(dispStr1, hud1Color, 15, 15);
-		(engine.getHUDmanager()).setHUD2(dispStr2, hud2Color, 500, 15);
+		StringBuilder hudText = new StringBuilder("Powerups");
+		if (showSpeedBoostHUD) hudText.append("Speed Boost  ");
+		if (showShieldHUD)     hudText.append("Shield  ");
+		if (showHealthBoostHUD) hudText.append("Healed  ");
+
+		Vector3f hudColor = new Vector3f(0.9f, 0.6f, 0.1f); // warm orange
+		(engine.getHUDmanager()).setHUD3(hudText.toString(), hudColor, 25, 40);
 
 		if (!initializedBoosts && (isPowerUpAuthority || !isClientConnected)) {
 			int counter = 0;
@@ -526,11 +526,13 @@ public class MyGame extends VariableFrameRateGame
 
 		if (shieldActive && System.currentTimeMillis() >= shieldEndTime) {
 			shieldActive = false;
+			showSpeedBoostHUD = false;
 			System.out.println("Shield expired.");
 		}
 
 		if (boosted && System.currentTimeMillis() >= boostEndTime) {
 			boosted = false;
+			showSpeedBoostHUD = false;
 			System.out.println("Speed boost ended.");
 		}
 	}
@@ -919,6 +921,7 @@ public class MyGame extends VariableFrameRateGame
 		if (currentHealth > maxHealth) {
 			currentHealth = maxHealth;
 		}
+		showHealthBoostHUD = true;
 		if (protClient != null) {
 			protClient.sendHealthUpdate(currentHealth);
 		}
@@ -928,6 +931,7 @@ public class MyGame extends VariableFrameRateGame
 	public void activateShield() {
 		shieldActive = true;
 		shieldEndTime = System.currentTimeMillis() + 5000;
+		showShieldHUD = true;
 		System.out.println("Sheild activated!");
 	}
 
@@ -938,6 +942,7 @@ public class MyGame extends VariableFrameRateGame
 	public void activateSpeedBoost() {
 		boosted = true;
 		boostEndTime = System.currentTimeMillis() + 5000;
+		showSpeedBoostHUD = true;
 		System.out.println("Speed boost activated");
 	}
 	private void rotateTurretTowardsPlayer() {
