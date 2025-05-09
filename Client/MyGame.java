@@ -59,6 +59,8 @@ public class MyGame extends VariableFrameRateGame
 	private boolean showShieldHUD = false;
 	private boolean showHealthBoostHUD = false;
 
+	private Map<UUID, Integer> scoreboard = new HashMap<>();
+
 	private boolean turretShouldRotate = false;
 	private TurretAIController turretAI;
 
@@ -355,12 +357,21 @@ public class MyGame extends VariableFrameRateGame
 		Camera c = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
 
 		orbitController.updateCameraPosition();
+
+		StringBuilder scoreText = new StringBuilder("Scoreboard:\n");
+		int i = 1;
+		for (UUID playerId : scoreboard.keySet()) {
+			scoreText.append("Player ").append(i++).append(": ")
+					.append(scoreboard.get(playerId)).append(" kills\n");
+		}
+		Vector3f white = new Vector3f(1f, 1f, 1f);
+		(engine.getHUDmanager()).setHUD2(scoreText.toString(), white, 20, 900);
 		
 		// build and set HUD
 		int elapsTimeSec = Math.round((float)(System.currentTimeMillis()-startTime)/1000.0f);
-		StringBuilder hudText = new StringBuilder("Powerups");
+		StringBuilder hudText = new StringBuilder("Powerups: ");
 		if (showSpeedBoostHUD) hudText.append("Speed Boost  ");
-		if (showShieldHUD)     hudText.append("Shield  ");
+		if (showShieldHUD)     hudText.append("Shiel  ");
 		if (showHealthBoostHUD) hudText.append("Healed  ");
 
 		Vector3f hudColor = new Vector3f(0.9f, 0.6f, 0.1f); // warm orange
@@ -909,9 +920,11 @@ public class MyGame extends VariableFrameRateGame
 
 		powerUpLights.add(new PowerUpLight(lightHolder, spotlight));
 	}
-	
-	
 
+	public void updateScoreboard(Map<UUID, Integer> newBoard) {
+		scoreboard = newBoard;
+	}
+	
 	public ArrayList<PowerUp> getPowerUps() {
 		return powerUps;
 	}

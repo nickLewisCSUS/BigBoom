@@ -2,6 +2,8 @@ package Server;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import org.joml.Matrix4f;
@@ -12,6 +14,9 @@ import tage.networking.server.IClientInfo;
 
 public class GameServerUDP extends GameConnectionServer<UUID> 
 {
+
+	private Map<UUID, Integer> killCounts = new HashMap<>();
+
 	public GameServerUDP(int localPort) throws IOException 
 	{	super(localPort, ProtocolType.UDP);
 	}
@@ -337,6 +342,24 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 		try {
 			String message = "isfar," + clientID.toString();
 			sendPacket(message, clientID);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	// Call this when a player gets a kill (you decide how to trigger it)
+	public void incrementKill(UUID killerID) {
+		killCounts.put(killerID, killCounts.getOrDefault(killerID, 0) + 1);
+		broadcastScoreboard();
+	}
+
+	private void broadcastScoreboard() {
+		StringBuilder sb = new StringBuilder("scoreboard");
+		for (Map.Entry<UUID, Integer> entry : killCounts.entrySet()) {
+			sb.append(",").append(entry.getKey()).append(":").append(entry.getValue());
+		}
+		try {
+			forwardPacketToAll(sb.toString(), null);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

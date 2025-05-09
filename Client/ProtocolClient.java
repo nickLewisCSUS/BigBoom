@@ -3,7 +3,9 @@ package Client;
 import java.awt.Color;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.UUID;
 import java.util.Vector;
 import org.joml.*;
@@ -114,6 +116,17 @@ public class ProtocolClient extends GameConnectionClient
 				boolean lightOn = messageTokens[2].equals("1");
 				ghostManager.setGhostHeadlight(ghostID, lightOn);
 			} 
+
+			if (messageTokens[0].equals("scoreboard")) {
+				Map<UUID, Integer> scores = new HashMap<>();
+				for (int i = 1; i < messageTokens.length; i++) {
+					String[] parts = messageTokens[i].split(":");
+					UUID playerId = UUID.fromString(parts[0]);
+					int kills = Integer.parseInt(parts[1]);
+					scores.put(playerId, kills);
+				}
+				game.updateScoreboard(scores);
+			}
 			
 
 			// Handle HEALTH message
