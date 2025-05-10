@@ -55,6 +55,8 @@ public class MyGame extends VariableFrameRateGame
 	
 	private boolean useSlowTank = false;
 
+	private boolean physicsRenderEnabled = true;
+
 	private Light light, headlight, healthSpotlight;
 	private boolean headlightOn = true;
 	private ArrayList<PowerUpLight> powerUpLights = new ArrayList<>();
@@ -656,6 +658,17 @@ public class MyGame extends VariableFrameRateGame
 				protClient.sendHeadlightState(headlightOn);
 				break;
 			}
+			case KeyEvent.VK_P:
+			{
+				physicsRenderEnabled = !physicsRenderEnabled;
+				System.out.println("Physics render: " + (physicsRenderEnabled ? "ON" : "OFF"));
+
+				if (physicsRenderEnabled)
+					engine.enablePhysicsWorldRender();
+				else
+					engine.disablePhysicsWorldRender();
+				break;
+			}
 		}
 		super.keyPressed(e);
 	}
@@ -684,25 +697,25 @@ public class MyGame extends VariableFrameRateGame
 		// Arrow key actions
 		AbstractInputAction pitchUp = new AbstractInputAction() {
 			public void performAction(float time, Event evt) {
-				updateGunPitch((float)Math.toRadians(-1.5));
+				updateGunPitch((float)Math.toRadians(-0.7));
 			}
 		};
 
 		AbstractInputAction pitchDown = new AbstractInputAction() {
 			public void performAction(float time, Event evt) {
-				updateGunPitch((float)Math.toRadians(1.5));
+				updateGunPitch((float)Math.toRadians(0.7));
 			}
 		};
 
 		AbstractInputAction yawLeft = new AbstractInputAction() {
 			public void performAction(float time, Event evt) {
-				updateTurretYaw((float)Math.toRadians(1.5));
+				updateTurretYaw((float)Math.toRadians(0.7));
 			}
 		};
 
 		AbstractInputAction yawRight = new AbstractInputAction() {
 			public void performAction(float time, Event evt) {
-				updateTurretYaw((float)Math.toRadians(-1.5));
+				updateTurretYaw((float)Math.toRadians(-0.7));
 			}
 		};
 
