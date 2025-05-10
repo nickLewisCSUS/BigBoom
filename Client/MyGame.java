@@ -212,27 +212,6 @@ public class MyGame extends VariableFrameRateGame
         buildMaze();
         buildAvatar();
 
-		// build speed powerup
-		speedBoost = new GameObject(GameObject.root(), speedBoostS, speedBoostT);
-		initialTranslation = (new Matrix4f()).translation(0f,0f,-1f);
-		speedBoost.setLocalTranslation(initialTranslation);
-		initialRotation = (new Matrix4f()).rotationY((float)java.lang.Math.toRadians(135.0f));
-		speedBoost.setLocalRotation(initialRotation);
-		initialScale = (new Matrix4f()).scaling(0.25f);
-		speedBoost.setLocalScale(initialScale);
-		double[] transform = toDoubleArray(speedBoost.getLocalTranslation().get(vals));
-		speedBoostP = physicsEngine.addSphereObject(physicsEngine.nextUID(), 0f, transform, 0.70f);
-		speedBoost.setPhysicsObject(speedBoostP);
-
-		// build shield upgrade object
-		shield = new GameObject(GameObject.root(), shieldS, shieldT);
-		initialTranslation = (new Matrix4f()).translation(1f,0f,1f);
-		shield.setLocalTranslation(initialTranslation);
-		initialRotation = (new Matrix4f()).rotationY((float)java.lang.Math.toRadians(135.0f));
-		shield.setLocalRotation(initialRotation);
-		initialScale = (new Matrix4f()).scaling(0.1f, 0.1f, 0.1f);
-		shield.setLocalScale(initialScale);
-
 		// build turret object
 		turret = new GameObject(GameObject.root(), turretS, turretT);
 		initialTranslation = (new Matrix4f()).translation(-40f,0f,2f);
@@ -466,16 +445,6 @@ public class MyGame extends VariableFrameRateGame
 			combined.setTranslation(avatar.getWorldLocation());
 			double[] tempTransform = toDoubleArray(combined.get(vals));
 			avatar.getPhysicsObject().setTransform(tempTransform);
-
-			// --- Manually build and push avatar transform into collider ---
-			combined = new Matrix4f();
-			combined.identity();
-			rotationCorrection = new Matrix4f().rotationY((float)Math.toRadians(90f));
-			combined.mul(speedBoost.getLocalRotation());
-			combined.mul(rotationCorrection);
-			combined.setTranslation(speedBoost.getWorldLocation());
-			tempTransform = toDoubleArray(combined.get(vals));
-			speedBoost.getPhysicsObject().setTransform(tempTransform);
 		}
 		
 		// turretS.updateAnimation();
