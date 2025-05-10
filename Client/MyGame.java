@@ -25,6 +25,7 @@ import org.joml.*;
 import net.java.games.input.*;
 import net.java.games.input.Component.Identifier;
 import net.java.games.input.Component.Identifier.*;
+import net.java.games.input.Event;
 import tage.networking.IGameConnection.ProtocolType;
 import tage.nodeControllers.RotationController;
 import tage.physics.*;
@@ -50,9 +51,11 @@ public class MyGame extends VariableFrameRateGame
 	private GameObject avatar, x, y, z, playerHealthBar,terrain, maze, turret, headlightNode, tankTurret, tankGun;
 	//private AnimatedShape turretS;
 	private ObjShape ghostS, tankS, slowTankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, healthBoostS, turretS, tankBodyS, tankTurretS, tankGunS;
-	private TextureImage tankT, slowTankT, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, healthBoostT, turretT;
+	private TextureImage tankT, slowTankT, ghostT, playerHealthBarT, ghostHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, healthBoostT, turretT;
 	
 	private boolean useSlowTank = false;
+
+	private boolean physicsRenderEnabled = true;
 
 	private Light light, headlight, healthSpotlight;
 	private boolean headlightOn = true;
@@ -191,7 +194,7 @@ public class MyGame extends VariableFrameRateGame
 		// turretS.loadAnimation("SCAN", "turretScan.rka");
 		// turretS.loadAnimation("ACTIVATE", "turretActivate.rka");
 		// turretS.loadAnimation("DEACTIVATE", "turretDeactivate.rka");
-		ghostS = new Sphere();
+		ghostHealthBarT = new TextureImage("red.png");
 		tankS = new ImportedModel("tank.obj");
 		slowTankS = new ImportedModel("tank3.obj");
 		shieldS = new ImportedModel("sheildmodel.obj");
@@ -211,16 +214,16 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void loadTextures()
-	{	tankT = new TextureImage("metal.jpg");
-		slowTankT = new TextureImage("terrain_texture1.png");
+	{	tankT = new TextureImage("fastTank.png");
+		slowTankT = new TextureImage("slowTank.png");
 		shieldT = new TextureImage("sheild.jpg");
-		ghostT = new TextureImage("metal.jpg");
+		ghostT = new TextureImage("fastTank.png");
 		terrainHeightMap = new TextureImage("terrain_height.png");
 		terrainT = new TextureImage("terrain_texture1.png");
 		mazeHeightMap = new TextureImage("maze.png");
 		mazeT = new TextureImage("metal.jpg");
-		speedBoostT = new TextureImage("blank.png");//"speedBoostTx.png");
-		playerHealthBarT = new TextureImage("red.png");
+		speedBoostT = new TextureImage("blank.png");
+		playerHealthBarT = new TextureImage("blue.jpg");
 		healthBoostT = new TextureImage("healthBoost.png");
 		turretT = new TextureImage("red.png");
 	}
@@ -417,9 +420,9 @@ public class MyGame extends VariableFrameRateGame
 		} 
 
 		if (showHealthBar) {
-			playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 2.5f, 0f));
+			playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 1.5f, 0f));
 			float healthRatio = currentHealth / maxHealth;
-			float baseLength = 3.0f;
+			float baseLength = 7.0f;
 			playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.1f, 0.1f));
 		} else {
 			playerHealthBar.setLocalScale(new Matrix4f().scaling(0f)); // Hide it safely
@@ -550,13 +553,6 @@ public class MyGame extends VariableFrameRateGame
 			nextPosition = null;
 		}
 
-		// Update health bar position and scale
-		playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 0.4f, 0f));
-		float healthRatio = currentHealth / maxHealth;
-		float baseLength = 0.25f;
-		playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.001f, 0.001f));
-		playerHealthBar.getRenderStates().setColor(new Vector3f(1f, 0f, 0f));
-
 		if (boosted && System.currentTimeMillis() >= boostEndTime) {
 			boosted = false;
 		}
@@ -637,7 +633,7 @@ public class MyGame extends VariableFrameRateGame
 				
 				break;
 			}
-			case KeyEvent.VK_F:
+			case KeyEvent.VK_T:
 			{	
 				terrainFollowMode = !terrainFollowMode;
 				if (!terrainFollowMode) {
@@ -650,36 +646,27 @@ public class MyGame extends VariableFrameRateGame
 				}
 				break;
 			}
-			case KeyEvent.VK_UP:
-			{
-				updateGunPitch((float)Math.toRadians(-1.5));
-				break;
-			}
-			case KeyEvent.VK_DOWN:
-			{
-				updateGunPitch((float)Math.toRadians(1.5));
-				break;
-			}			
-			case KeyEvent.VK_LEFT:
-			{
-				updateTurretYaw((float)Math.toRadians(1.5));
-				break;
-			}
-			case KeyEvent.VK_RIGHT:
-			{
-				updateTurretYaw((float)Math.toRadians(-1.5));
-				break;
-			}
 			case KeyEvent.VK_SPACE:
 			{
 				System.out.println("Starting physics...");
 				running = true;
 				break;
 			}
-			case KeyEvent.VK_L:
+			case KeyEvent.VK_F:
 			{
 				headlightOn = !headlightOn;
 				protClient.sendHeadlightState(headlightOn);
+				break;
+			}
+			case KeyEvent.VK_P:
+			{
+				physicsRenderEnabled = !physicsRenderEnabled;
+				System.out.println("Physics render: " + (physicsRenderEnabled ? "ON" : "OFF"));
+
+				if (physicsRenderEnabled)
+					engine.enablePhysicsWorldRender();
+				else
+					engine.disablePhysicsWorldRender();
 				break;
 			}
 		}
@@ -707,10 +694,41 @@ public class MyGame extends VariableFrameRateGame
 		TurnAction turnAction = new TurnAction(this, protClient);
 		ToggleHealthBarAction toggleHealthBar = new ToggleHealthBarAction();
 
+		// Arrow key actions
+		AbstractInputAction pitchUp = new AbstractInputAction() {
+			public void performAction(float time, Event evt) {
+				updateGunPitch((float)Math.toRadians(-0.7));
+			}
+		};
+
+		AbstractInputAction pitchDown = new AbstractInputAction() {
+			public void performAction(float time, Event evt) {
+				updateGunPitch((float)Math.toRadians(0.7));
+			}
+		};
+
+		AbstractInputAction yawLeft = new AbstractInputAction() {
+			public void performAction(float time, Event evt) {
+				updateTurretYaw((float)Math.toRadians(0.7));
+			}
+		};
+
+		AbstractInputAction yawRight = new AbstractInputAction() {
+			public void performAction(float time, Event evt) {
+				updateTurretYaw((float)Math.toRadians(-0.7));
+			}
+		};
+
 		im.associateActionWithAllKeyboards(Key.W, fwdAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 		im.associateActionWithAllKeyboards(Key.S, fwdAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 		im.associateActionWithAllKeyboards(Key.A, turnAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 		im.associateActionWithAllKeyboards(Key.D, turnAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+
+		// Bind to arrow keys
+		im.associateActionWithAllKeyboards(net.java.games.input.Component.Identifier.Key.UP, pitchUp, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+		im.associateActionWithAllKeyboards(net.java.games.input.Component.Identifier.Key.DOWN, pitchDown, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+		im.associateActionWithAllKeyboards(net.java.games.input.Component.Identifier.Key.LEFT, yawLeft, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+		im.associateActionWithAllKeyboards(net.java.games.input.Component.Identifier.Key.RIGHT, yawRight, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 
 		// im.associateActionWithAllGamepads(Identifier.Button._1, fwdAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 		// im.associateActionWithAllGamepads(Identifier.Axis.X, turnAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
@@ -807,58 +825,49 @@ public class MyGame extends VariableFrameRateGame
     }
 
     private void buildAvatar() {
-        if (useSlowTank) {
-        	// Tank Body (parent)
-        	avatar = new GameObject(GameObject.root(), tankBodyS, playerHealthBarT);
-        	avatar.setLocalTranslation(new Matrix4f().translation(3,0,-3));
-        	avatar.setLocalScale(new Matrix4f().scaling(0.12f));
+		float scale = useSlowTank ? getSlowTankScale() : getFastTankScale();
+		TextureImage texture = useSlowTank ? slowTankT : tankT;
 
-        	// Turret base (child of tank body)
-        	tankTurret = new GameObject(avatar, tankTurretS, playerHealthBarT);
-        	tankTurret.setLocalTranslation(new Matrix4f().translation(0f,0.25f,0.4f));
-        	tankTurret.propagateTranslation(true);
-        	tankTurret.propagateRotation(true);
-			tankTurret.applyParentRotationToPosition(true);
+		// Tank Body (parent)
+		avatar = new GameObject(GameObject.root(), tankBodyS, texture);
+		avatar.setLocalTranslation(new Matrix4f().translation(3, 0, -3));
+		avatar.setLocalScale(new Matrix4f().scaling(scale));
 
-        	// Gun (child of turret base)
-        	tankGun = new GameObject(tankTurret, tankGunS, playerHealthBarT);
-        	tankGun.setLocalTranslation(new Matrix4f().translation(0,0.25f,0.7f));
-        	tankGun.propagateTranslation(true);
-        	tankGun.propagateRotation(true);
-			tankGun.applyParentRotationToPosition(true);
-		} else {
-        	// Tank Body (parent)
-        	avatar = new GameObject(GameObject.root(), tankBodyS, playerHealthBarT);
-        	avatar.setLocalTranslation(new Matrix4f().translation(3,0,-3));
-        	avatar.setLocalScale(new Matrix4f().scaling(0.1f));
+		// Scaled offsets (just like GhostAvatar)
+		float turretOffsetY = 0.25f;
+		float turretOffsetZ = 0.4f * scale;
+		float gunOffsetY = 0.25f;
+		float gunOffsetZ = 0.7f * scale;
 
-	        // Turret base (child of tank body)
-   	    	tankTurret = new GameObject(avatar, tankTurretS, playerHealthBarT);
-    		tankTurret.setLocalTranslation(new Matrix4f().translation(0f,0.25f,0.4f));
-        	tankTurret.propagateTranslation(true);
-        	tankTurret.propagateRotation(true);
-			tankTurret.applyParentRotationToPosition(true);
+		// Turret base
+		tankTurret = new GameObject(avatar, tankTurretS, texture);
+		tankTurret.setLocalTranslation(new Matrix4f().translation(0f, turretOffsetY, turretOffsetZ));
+		tankTurret.propagateTranslation(true);
+		tankTurret.propagateRotation(true);
+		tankTurret.applyParentRotationToPosition(true);
 
-        	// Gun (child of turret base)
-        	tankGun = new GameObject(tankTurret, tankGunS, playerHealthBarT);
-        	tankGun.setLocalTranslation(new Matrix4f().translation(0,0.25f,0.7f));
-        	tankGun.propagateTranslation(true);
-        	tankGun.propagateRotation(true);
-			tankGun.applyParentRotationToPosition(true);
-		}
-		avatar.lookAt(new Vector3f(0,0,0));
+		// Gun
+		tankGun = new GameObject(tankTurret, tankGunS, texture);
+		tankGun.setLocalTranslation(new Matrix4f().translation(0f, gunOffsetY, gunOffsetZ));
+		tankGun.propagateTranslation(true);
+		tankGun.propagateRotation(true);
+		tankGun.applyParentRotationToPosition(true);
 
-		Matrix4f correctedTransform = new Matrix4f();
-		correctedTransform.identity();
-		correctedTransform.mul(new Matrix4f().rotationZ((float)Math.toRadians(90.0f)));
-		correctedTransform.setTranslation(avatar.getWorldLocation());
+		avatar.lookAt(new Vector3f(0, 0, 0));
 
+		// Optional transform correction
+		Matrix4f correctedTransform = new Matrix4f().identity()
+			.mul(new Matrix4f().rotationZ((float) Math.toRadians(90.0f)))
+			.setTranslation(avatar.getWorldLocation());
 
-		headlightNode = new GameObject(avatar, linxS, playerHealthBarT); // Or dummy shape/tex
+		// Headlight node
+		headlightNode = new GameObject(avatar, linxS, playerHealthBarT);
 		headlightNode.setLocalScale(new Matrix4f().scaling(0f)); // invisible
 		headlightNode.setLocalTranslation(new Matrix4f().translation(0f, 0.3f, 0f));
+
 		avatars.add(avatar);
-    }
+	}
+
 	
 
 	public ObjShape getSlowTankShape() {
@@ -910,7 +919,7 @@ public class MyGame extends VariableFrameRateGame
 
 	public void buildPowerUps() {
 
-		int numEachType = 5;
+		int numEachType = 10;
 		
 		for (int i = 0; i < numEachType; i++) {
 			
@@ -1019,6 +1028,10 @@ public class MyGame extends VariableFrameRateGame
 		return powerUps;
 	}
 
+	public TextureImage getGhostHealthBarTexture() {
+		return ghostHealthBarT;
+	}
+
 	public void increasePlayerHealth(float amount) {
 		currentHealth += amount;
 		if (currentHealth > maxHealth) {
@@ -1118,10 +1131,19 @@ public class MyGame extends VariableFrameRateGame
 		// Reapply rotation
 		Matrix4f yaw = new Matrix4f().rotationY(turretYawAngle);
 		tankTurret.setLocalRotation(yaw);
+		orbitController.setTurretYaw(turretYawAngle);
 
 		if (protClient != null) {
 			protClient.sendTankTurretRotationMessage(tankTurret.getLocalRotation());
 		}
+	}
+
+	public float getTurretYawAngle() {
+		return turretYawAngle;
+	}
+
+	public CameraOrbit3D getOrbitController() {
+		return orbitController;
 	}
 
 }

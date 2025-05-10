@@ -51,7 +51,8 @@ public class FwdAction extends AbstractInputAction
 			movementAmount = keyValue * moveSpeed * time;
 		}
 
-		fwdDirection.mul(movementAmount* time);
+		float finalMoveAmount = movementAmount * time;
+		fwdDirection.mul(finalMoveAmount);
 		newPosition = oldPosition.add(fwdDirection.x(), fwdDirection.y(), fwdDirection.z());
 
 		// Terrain following and wall collision logic
@@ -66,12 +67,16 @@ public class FwdAction extends AbstractInputAction
 			float terrainHeight = game.getTerrain().getHeight(newPosition.x(), newPosition.z());	
 			newPosition.y = terrainHeight - 9f;
 		}
-		av.setLocalLocation(newPosition);
+		float lerpFactor = 0.1f; 
+		Vector3f smoothedPosition = oldPosition.lerp(newPosition, lerpFactor, new Vector3f());
+		av.setLocalLocation(smoothedPosition);
 
 		protClient.sendMoveMessage(
 			av.getWorldLocation(),
 			av.getWorldRotation(),
 			game.getTankTurret().getLocalRotation()
 		);
+		
+		game.getOrbitController().setTurretYaw(game.getTurretYawAngle());
 	}
 }

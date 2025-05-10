@@ -29,7 +29,7 @@ public class TurnAction extends AbstractInputAction
 		Vector3f upVec = new Vector3f(oldUp.x(), oldUp.y(), oldUp.z());
 
 		float angle = 0f;
-        float baseTurnSpeed = 0.5f;
+        float baseTurnSpeed = 2.5f;
 		
 		Component.Identifier id = e.getComponent().getIdentifier();
 		if (id == Component.Identifier.Key.A)
@@ -45,10 +45,13 @@ public class TurnAction extends AbstractInputAction
 		}
 
 
-		rotAroundAvatarUp = new Matrix4f().rotation(angle, upVec);
-		newRotation = oldRotation;
-		newRotation = oldRotation.mul(rotAroundAvatarUp);
-		av.setLocalRotation(newRotation);
+		//smooth turn using quadternions
+		Quaternionf oldQuat = new Quaternionf().setFromUnnormalized(oldRotation);
+		Quaternionf turnQuat = new Quaternionf().rotateAxis(angle, upVec.x(), upVec.y(), upVec.z());
+		Quaternionf targetQuat = new Quaternionf(oldQuat).mul(turnQuat);
+		Quaternionf smoothQuat = new Quaternionf(oldQuat).slerp(targetQuat, 0.1f);
+		Matrix4f smoothRot = new Matrix4f().rotation(smoothQuat);
+		av.setLocalRotation(smoothRot);
 
 		// Avoid crash in single-player mode
 		protClient.sendMoveMessage(
