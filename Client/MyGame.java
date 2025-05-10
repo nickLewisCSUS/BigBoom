@@ -12,6 +12,7 @@ import java.awt.*;
 
 import java.awt.event.*;
 
+
 import java.io.*;
 import java.util.*;
 import java.util.List;
@@ -59,6 +60,7 @@ public class MyGame extends VariableFrameRateGame
 
 	private Light light, headlight, healthSpotlight;
 	private boolean headlightOn = true;
+	private boolean darkMode = false;
 	private ArrayList<PowerUpLight> powerUpLights = new ArrayList<>();
 
 	private boolean showSpeedBoostHUD = false;
@@ -667,6 +669,18 @@ public class MyGame extends VariableFrameRateGame
 					engine.enablePhysicsWorldRender();
 				else
 					engine.disablePhysicsWorldRender();
+				break;
+			}
+			case KeyEvent.VK_E:
+			{
+				darkMode = !darkMode;
+				if (darkMode) {
+					Light.setGlobalAmbient(0.05f, 0.05f, 0.05f); // almost pitch dark
+					System.out.println("Dark mode ON");
+				} else {
+					Light.setGlobalAmbient(0.5f, 0.5f, 0.5f); // normal lighting
+					System.out.println("Dark mode OFF");
+				}
 				break;
 			}
 		}
