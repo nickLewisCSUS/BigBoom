@@ -68,7 +68,10 @@ public class FwdAction extends AbstractInputAction
 		}
 		av.setLocalLocation(newPosition);
 
-		if (protClient != null)
-			protClient.sendMoveMessage(av.getWorldLocation(), av.getWorldRotation());
+		protClient.sendMoveMessage(
+			av.getWorldLocation(),
+			av.getWorldRotation(),
+			game.getTankTurret().getLocalRotation()
+		);
 	}
 }

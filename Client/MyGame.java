@@ -115,6 +115,9 @@ public class MyGame extends VariableFrameRateGame
     private RotationController rotCtrl = new RotationController(engine, new Vector3f(0,1,0), 0.001f);
 	private PhysicsObject avatarPhys;
 
+	public float getSlowTankScale() { return 0.12f; }
+	public float getFastTankScale() { return 0.10f; }
+
 	public boolean isPowerUpAuthority() {
 		return isPowerUpAuthority;
 	}
@@ -133,6 +136,26 @@ public class MyGame extends VariableFrameRateGame
 
 	public ProtocolClient getProtocolClient() {
 		return this.protClient;
+	}
+
+	public GameObject getTankTurret() {
+		return tankTurret;
+	}
+
+	public GameObject getTankGun() {
+		return tankGun;
+	}
+
+	public ObjShape getTankBodyShape() {
+		return tankBodyS;
+	}
+
+	public ObjShape getTankTurretShape() {
+		return tankTurretS;
+	}
+
+	public ObjShape getTankGunShape() {
+		return tankGunS;
 	}
 
 	public MyGame(String serverAddress, int serverPort, String protocol)
@@ -169,6 +192,7 @@ public class MyGame extends VariableFrameRateGame
 		// turretS.loadAnimation("ACTIVATE", "turretActivate.rka");
 		// turretS.loadAnimation("DEACTIVATE", "turretDeactivate.rka");
 		ghostS = new Sphere();
+		tankS = new ImportedModel("tank.obj");
 		slowTankS = new ImportedModel("tank3.obj");
 		shieldS = new ImportedModel("sheildmodel.obj");
 		linxS = new Line(new Vector3f(0f,0f,0f), new Vector3f(3f,0f,0f));
@@ -516,7 +540,11 @@ public class MyGame extends VariableFrameRateGame
 				} else {
 					avatar.setLocalLocation(nextPosition);
 				}
-				protClient.sendMoveMessage(avatar.getWorldLocation(), avatar.getWorldRotation());
+				protClient.sendMoveMessage(
+					avatar.getWorldLocation(),
+					avatar.getWorldRotation(),
+					tankTurret.getWorldRotation()
+				);
 			}
 			moveDirection = MovementDirection.NONE;
 			nextPosition = null;
@@ -826,7 +854,8 @@ public class MyGame extends VariableFrameRateGame
 		correctedTransform.setTranslation(avatar.getWorldLocation());
 
 
-		headlightNode = new GameObject(avatar);
+		headlightNode = new GameObject(avatar, linxS, playerHealthBarT); // Or dummy shape/tex
+		headlightNode.setLocalScale(new Matrix4f().scaling(0f)); // invisible
 		headlightNode.setLocalTranslation(new Matrix4f().translation(0f, 0.3f, 0f));
 		avatars.add(avatar);
     }
@@ -1076,6 +1105,7 @@ public class MyGame extends VariableFrameRateGame
 		// Reapply rotation
 		Matrix4f pitch = new Matrix4f().rotationX(gunPitchAngle);
 		tankGun.setLocalRotation(pitch);
+		if (protClient != null) protClient.sendGunRotationMessage(pitch);
 
 	}
 
@@ -1088,6 +1118,10 @@ public class MyGame extends VariableFrameRateGame
 		// Reapply rotation
 		Matrix4f yaw = new Matrix4f().rotationY(turretYawAngle);
 		tankTurret.setLocalRotation(yaw);
+
+		if (protClient != null) {
+			protClient.sendTankTurretRotationMessage(tankTurret.getLocalRotation());
+		}
 	}
 
 }

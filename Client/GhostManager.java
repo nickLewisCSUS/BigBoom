@@ -20,26 +20,22 @@ public class GhostManager
 	}
 	
 	public void createGhostAvatar(UUID id, Vector3f position, String avatarType) throws IOException {
-		System.out.println("adding ghost with ID --> " + id + " and avatarType --> " + avatarType);
-	
-		ObjShape shape;
-		TextureImage texture;
-	
-		if (avatarType.equalsIgnoreCase("slow")) {
-			shape = game.getSlowTankShape(); // Or use game.getSlowTankShape() if available
-			texture = game.getSlowTankTexture();  // Use a different texture if you want
-		} else {
-			shape = game.getFastTankShape(); // default
-			texture = game.getFastTankTexture();
-		}
-	
-		GhostAvatar newAvatar = new GhostAvatar(id, shape, texture, position, game.getEngine());
-		Matrix4f initialScale = new Matrix4f().scaling(avatarType.equalsIgnoreCase("slow") ? 1.5f : 1.0f);
-		newAvatar.setLocalScale(initialScale);
-		newAvatar.createHealthBar(game.getPlayerHealthBarShape(), game.getPlayerHealthBarTexture());
-		ghostAvatars.add(newAvatar);
-		newAvatar.initHeadlight();
-	
+		 System.out.println("adding ghost with ID --> " + id + " and avatarType --> " + avatarType);
+
+		ObjShape bodyShape = game.getTankBodyShape();
+		ObjShape turretShape = game.getTankTurretShape();
+		ObjShape gunShape = game.getTankGunShape();
+		TextureImage texture = avatarType.equalsIgnoreCase("slow") 
+			? game.getSlowTankTexture() : game.getFastTankTexture();
+
+		float scale = avatarType.equalsIgnoreCase("slow") 
+			? game.getSlowTankScale() : game.getFastTankScale();
+
+		GhostAvatar ghost = new GhostAvatar(id, bodyShape, turretShape, gunShape, texture, position, game.getEngine(), scale);
+		ghost.createHealthBar(game.getPlayerHealthBarShape(), game.getPlayerHealthBarTexture());
+
+		ghostAvatars.add(ghost);
+		ghost.initHeadlight();
 		game.getEngine().getLightManager().loadLightArraySSBO();
 	}
 	
@@ -101,5 +97,14 @@ public class GhostManager
 
 	public Vector<GhostAvatar> getGhosts() {
 		return ghostAvatars;
+	}
+
+	public GhostAvatar getGhostByID(UUID id) {
+		for (GhostAvatar g : ghostAvatars) {
+			if (g.getID().equals(id)) {
+				return g;
+			}
+		}
+		return null;
 	}
 }

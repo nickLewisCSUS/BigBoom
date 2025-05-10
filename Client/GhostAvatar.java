@@ -20,18 +20,42 @@ public class GhostAvatar extends GameObject
 	private GameObject headlightNode;
 	private Engine engine;
 	private boolean isHeadlightOn = false;
+	private GameObject ghostTurret;
+	private GameObject ghostGun;
 	UUID uuid;
 
-	public GhostAvatar(UUID id, ObjShape s, TextureImage t, Vector3f p, Engine e) 
-	{	super(GameObject.root(), s, t);
-		uuid = id;
-		setPosition(p);
-		engine = e;
-	}
+	public GhostAvatar(UUID id, ObjShape bodyShape, ObjShape turretShape, ObjShape gunShape, TextureImage texture, Vector3f pos, Engine e, float scale) {
+	super(GameObject.root(), bodyShape, texture);
+	uuid = id;
+	engine = e;
+
+	setLocalLocation(pos);
+	setLocalScale(new Matrix4f().scaling(scale)); // scale whole ghost
+
+	// Match player tank turret/gun positioning exactly (do NOT scale Y)
+	float turretOffsetY = 0.25f;
+	float turretOffsetZ = 0.4f * scale;
+	float gunOffsetY = 0.25f;
+	float gunOffsetZ = 0.7f * scale;
+
+	// Create turret
+	ghostTurret = new GameObject(this, turretShape, texture);
+	ghostTurret.setLocalTranslation(new Matrix4f().translation(0f, turretOffsetY, turretOffsetZ));
+	ghostTurret.propagateTranslation(true);
+	ghostTurret.propagateRotation(true);
+	ghostTurret.applyParentRotationToPosition(true);
+
+	// Create gun
+	ghostGun = new GameObject(ghostTurret, gunShape, texture);
+	ghostGun.setLocalTranslation(new Matrix4f().translation(0f, gunOffsetY, gunOffsetZ));
+	ghostGun.propagateTranslation(true);
+	ghostGun.propagateRotation(true);
+	ghostGun.applyParentRotationToPosition(true);
+}
 
 	public void createHealthBar(ObjShape shape, TextureImage texture) {
 		ghostHealthBar = new GameObject(this, shape, texture);
-		updateHealthBar(); 
+		updateHealthBar();   
 	}
 
 	public void updateHealthBar() {
@@ -88,5 +112,43 @@ public class GhostAvatar extends GameObject
 		} else {
 			ghostHeadlight.setLocation(new Vector3f(0, -1000, 0));
 		}
+	}
+
+	public void updateTurretRotation(Matrix4f rot) {
+	if (ghostTurret != null) {
+		ghostTurret.setLocalRotation(rot);
+	}
+	}
+
+	public void updateGunRotation(Matrix4f rot) {
+		if (ghostGun != null) {
+			ghostGun.setLocalRotation(rot);
+		}
+	}
+
+	public void setTurretRotation(Matrix4f rot) {
+		 if (ghostTurret != null) {
+			ghostTurret.setLocalRotation(rot);
+		} else {
+			System.out.println("[GhostAvatar] Warning: Tried to rotate null ghostTurret!");
+		}
+	}
+
+	public void setGunRotation(Matrix4f rot) {
+		ghostGun.setLocalRotation(rot);
+	}
+
+	public void buildParts(ObjShape turretShape, ObjShape gunShape, TextureImage texture) {
+		ghostTurret = new GameObject(this, turretShape, texture);
+		ghostTurret.setLocalTranslation(new Matrix4f().translation(0f, 0.25f, 0.4f));
+		ghostTurret.propagateTranslation(true);
+		ghostTurret.propagateRotation(true);
+		ghostTurret.applyParentRotationToPosition(true);
+
+		ghostGun = new GameObject(ghostTurret, gunShape, texture);
+		ghostGun.setLocalTranslation(new Matrix4f().translation(0f, 0.25f, 0.7f));
+		ghostGun.propagateTranslation(true);
+		ghostGun.propagateRotation(true);
+		ghostGun.applyParentRotationToPosition(true);
 	}
 }
