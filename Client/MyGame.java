@@ -637,7 +637,7 @@ public class MyGame extends VariableFrameRateGame
 				
 				break;
 			}
-			case KeyEvent.VK_F:
+			case KeyEvent.VK_T:
 			{	
 				terrainFollowMode = !terrainFollowMode;
 				if (!terrainFollowMode) {
@@ -676,7 +676,7 @@ public class MyGame extends VariableFrameRateGame
 				running = true;
 				break;
 			}
-			case KeyEvent.VK_L:
+			case KeyEvent.VK_F:
 			{
 				headlightOn = !headlightOn;
 				protClient.sendHeadlightState(headlightOn);
@@ -1118,10 +1118,19 @@ public class MyGame extends VariableFrameRateGame
 		// Reapply rotation
 		Matrix4f yaw = new Matrix4f().rotationY(turretYawAngle);
 		tankTurret.setLocalRotation(yaw);
+		orbitController.setTurretYaw(turretYawAngle);
 
 		if (protClient != null) {
 			protClient.sendTankTurretRotationMessage(tankTurret.getLocalRotation());
 		}
+	}
+
+	public float getTurretYawAngle() {
+		return turretYawAngle;
+	}
+
+	public CameraOrbit3D getOrbitController() {
+		return orbitController;
 	}
 
 }

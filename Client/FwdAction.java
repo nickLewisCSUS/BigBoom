@@ -73,5 +73,7 @@ public class FwdAction extends AbstractInputAction
 			av.getWorldRotation(),
 			game.getTankTurret().getLocalRotation()
 		);
+		
+		game.getOrbitController().setTurretYaw(game.getTurretYawAngle());
 	}
 }

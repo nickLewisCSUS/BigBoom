@@ -24,6 +24,7 @@ public class CameraOrbit3D {
     private final float closeDistance = 1.0f;
     private final float farDistance = 50.0f;
     public static float overheadHeight = 10.0f;
+    private float turretYawOffset = 0f;
 
     /**
      * Constructs a CameraOrbit3D object.
@@ -97,7 +98,7 @@ public class CameraOrbit3D {
     public void updateCameraPosition() {
         Vector3f avatarRot = avatar.getWorldForwardVector();
         double avatarAngle = Math.toDegrees((double) avatarRot.angleSigned(new Vector3f(0,0,-1), new Vector3f(0,1,0)));
-        float totalAz = cameraAzimuth - (float)avatarAngle;
+        float totalAz = cameraAzimuth - (float)avatarAngle + (float)Math.toDegrees(turretYawOffset);
         double theta = Math.toRadians(totalAz);
         double phi = Math.toRadians(cameraElevation);
 
@@ -194,5 +195,10 @@ public class CameraOrbit3D {
 
             System.out.println("Overhead Camera Zoom Level: " + overheadHeight);
         }
+    }
+
+    
+    public void setTurretYaw(float yaw) {
+        this.turretYawOffset = yaw;
     }
 }
