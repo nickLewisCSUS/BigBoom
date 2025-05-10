@@ -3,7 +3,9 @@ package Client;
 import java.awt.Color;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.UUID;
 import java.util.Vector;
 import org.joml.*;
@@ -78,12 +80,14 @@ public class ProtocolClient extends GameConnectionClient
 				
 				// Parse out the position into a Vector3f
 				Vector3f ghostPosition = new Vector3f(
-					Float.parseFloat(messageTokens[2]),
-					Float.parseFloat(messageTokens[3]),
-					Float.parseFloat(messageTokens[4]));
+				Float.parseFloat(messageTokens[2]),
+				Float.parseFloat(messageTokens[3]),
+				Float.parseFloat(messageTokens[4]));
+
+				String avatarType = (messageTokens.length > 5) ? messageTokens[5] : "fast"; // fallback
 
 				try
-				{	ghostManager.createGhostAvatar(ghostID, ghostPosition);
+				{	ghostManager.createGhostAvatar(ghostID, ghostPosition, avatarType);
 				}	catch (IOException e)
 				{	System.out.println("error creating ghost avatar");
 				}
@@ -114,6 +118,17 @@ public class ProtocolClient extends GameConnectionClient
 				boolean lightOn = messageTokens[2].equals("1");
 				ghostManager.setGhostHeadlight(ghostID, lightOn);
 			} 
+
+			if (messageTokens[0].equals("scoreboard")) {
+				Map<UUID, Integer> scores = new HashMap<>();
+				for (int i = 1; i < messageTokens.length; i++) {
+					String[] parts = messageTokens[i].split(":");
+					UUID playerId = UUID.fromString(parts[0]);
+					int kills = Integer.parseInt(parts[1]);
+					scores.put(playerId, kills);
+				}
+				game.updateScoreboard(scores);
+			}
 			
 
 			// Handle HEALTH message
@@ -313,11 +328,12 @@ public class ProtocolClient extends GameConnectionClient
 
 	public void sendCreateMessage(Vector3f position)
 	{	try 
-		{	String message = new String("create," + id.toString());
+		{	String avatarType = game.isUsingSlowTank() ? "slow" : "fast";
+			String message = new String("create," + id.toString());
 			message += "," + position.x();
 			message += "," + position.y();
 			message += "," + position.z();
-			
+			message += "," + avatarType;
 			sendPacket(message);
 		} catch (IOException e) 
 		{	e.printStackTrace();
@@ -331,10 +347,13 @@ public class ProtocolClient extends GameConnectionClient
 
 	public void sendDetailsForMessage(UUID remoteId, Vector3f position)
 	{	try 
-		{	String message = new String("dsfr," + remoteId.toString() + "," + id.toString());
+		{
+			String avatarType = game.isUsingSlowTank() ? "slow" : "fast";
+			String message = new String("dsfr," + remoteId.toString() + "," + id.toString());
 			message += "," + position.x();
 			message += "," + position.y();
 			message += "," + position.z();
+			message += "," + avatarType;
 			
 			sendPacket(message);
 		} catch (IOException e) 
