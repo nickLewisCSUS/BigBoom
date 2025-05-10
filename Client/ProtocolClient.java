@@ -141,38 +141,67 @@ public class ProtocolClient extends GameConnectionClient
 			
 			// Handle MOVE message
 			// Format: (move,remoteId,x,y,z)
-			if (messageTokens[0].compareTo("move") == 0)
-			{
-				// move a ghost avatar
-				// Parse out the id into a UUID
+			if (messageTokens[0].equals("move")) {
 				UUID ghostID = UUID.fromString(messageTokens[1]);
 
-				System.out.println("[MOVE] Received MOVE for ghostID: " + ghostID);
-				System.out.println("[MOVE] This client’s ID is: " + this.id);
-				
-				if (ghostID.equals(this.id)) {
-					System.out.println("[MOVE] Skipping self-move packet.");
-					return;
-				}
-				
-				// Parse out the position into a Vector3f
 				Vector3f ghostPosition = new Vector3f(
 					Float.parseFloat(messageTokens[2]),
 					Float.parseFloat(messageTokens[3]),
-					Float.parseFloat(messageTokens[4]));
+					Float.parseFloat(messageTokens[4])
+				);
 
-				// Parse rotation matrix
-				Matrix4f rot = new Matrix4f();
 				int index = 5;
-				for (int i = 0; i < 4; i++) {
-					for (int j = 0; j < 4; j++) {
-						rot.set(i, j, Float.parseFloat(messageTokens[index++]));
-					}
-				}
 
-				
-				ghostManager.updateGhostAvatar(ghostID, ghostPosition, rot);
-			}	
+				Matrix4f bodyRot = new Matrix4f();
+				for (int i = 0; i < 4; i++)
+					for (int j = 0; j < 4; j++)
+						bodyRot.set(i, j, Float.parseFloat(messageTokens[index++]));
+
+				Matrix4f turretRot = new Matrix4f();
+				for (int i = 0; i < 4; i++)
+					for (int j = 0; j < 4; j++)
+						turretRot.set(i, j, Float.parseFloat(messageTokens[index++]));
+
+				Matrix4f gunRot = new Matrix4f();
+				for (int i = 0; i < 4; i++)
+					for (int j = 0; j < 4; j++)
+						gunRot.set(i, j, Float.parseFloat(messageTokens[index++]));
+
+				GhostAvatar ghost = ghostManager.getGhostByID(ghostID);
+				if (ghost != null) {
+					ghost.setLocalLocation(ghostPosition);
+					ghost.setLocalRotation(bodyRot);
+					ghost.setTurretRotation(turretRot);
+				}
+			}
+
+			if (messageTokens[0].equals("gunRot")) {
+				UUID ghostID = UUID.fromString(messageTokens[1]);
+				Matrix4f gunRot = new Matrix4f();
+				int index = 2;
+				for (int i = 0; i < 4; i++)
+					for (int j = 0; j < 4; j++)
+						gunRot.set(i, j, Float.parseFloat(messageTokens[index++]));
+
+				GhostAvatar ghost = ghostManager.getGhostByID(ghostID);
+				if (ghost != null)
+					ghost.setGunRotation(gunRot);
+			}
+
+			if (messageTokens[0].equals("turretRot")) {
+				UUID ghostID = UUID.fromString(messageTokens[1]);
+				Matrix4f turretRot = new Matrix4f();
+				int index = 2;
+				for (int i = 0; i < 4; i++)
+					for (int j = 0; j < 4; j++)
+						turretRot.set(i, j, Float.parseFloat(messageTokens[index++]));
+
+				GhostAvatar ghost = ghostManager.getGhostByID(ghostID);
+				if (ghost != null) {
+					ghost.setTurretRotation(turretRot);
+				}
+			}
+
 
 			// Handle POWERUP message
 			// Format: (powerup,remoteID,boostID,x,y,z)
@@ -362,32 +391,54 @@ public class ProtocolClient extends GameConnectionClient
 
 	// Informs the server that the local avatar has changed position.  
 	// Message Format: (move,localId,x,y,z) where x, y, and z represent the position.
-	public void sendMoveMessage(Vector3f position, Matrix4f rotation)
-	{	try 
-		{	String message = new String("move," + id.toString());
-			message += "," + position.x();
-			message += "," + position.y();
-			message += "," + position.z();
-
-			for (int i = 0; i < 4; i++) {
-				for (int j = 0; j < 4; j++) {
-					message += "," + rotation.get(i, j);
-				}
-			}
-			System.out.println("Sending MOVE message: " + message);
-			sendPacket(message);
-		} catch (IOException e) 
-		{	e.printStackTrace();
-	}	}
-
-	public void sendHealthUpdate(float health) {
+	public void sendMoveMessage(Vector3f position, Matrix4f bodyRot, Matrix4f turretRot) {
 		try {
-			String message = "health," + id.toString() + "," + health;
-			sendPacket(message);
+			StringBuilder msg = new StringBuilder("move," + id.toString());
+			msg.append(",").append(position.x());
+			msg.append(",").append(position.y());
+			msg.append(",").append(position.z());
+
+			// Body rotation
+			for (int i = 0; i < 4; i++)
+				for (int j = 0; j < 4; j++)
+					msg.append(",").append(bodyRot.get(i, j));
+
+			// Turret rotation
+			for (int i = 0; i < 4; i++)
+				for (int j = 0; j < 4; j++)
+					msg.append(",").append(turretRot.get(i, j));
+
+			// 🔴 MISSING: Gun rotation
+			for (int i = 0; i < 4; i++)
+				for (int j = 0; j < 4; j++)
+					msg.append(",").append(game.getTankGun().getWorldRotation().get(i, j));
+
+			sendPacket(msg.toString());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
+
+	public void sendGunRotationMessage(Matrix4f gunRot) {
+		try {
+			StringBuilder msg = new StringBuilder("gunRot," + id.toString());
+			for (int i = 0; i < 4; i++)
+				for (int j = 0; j < 4; j++)
+					msg.append(",").append(gunRot.get(i, j));
+			sendPacket(msg.toString());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void sendHealthUpdate(float health) {
+	try {
+		String message = "health," + id.toString() + "," + health;
+		sendPacket(message);
+	} catch (IOException e) {
+		e.printStackTrace();
+	}
+}
 
 	public void sendPowerUpUpdate(int boostID, Vector3f position) {
 		try {
@@ -446,4 +497,17 @@ public class ProtocolClient extends GameConnectionClient
 			e.printStackTrace();
 		}
 	}
+
+	public void sendTankTurretRotationMessage(Matrix4f turretRot) {
+    try {
+        StringBuilder msg = new StringBuilder("turretRot," + id.toString());
+        for (int i = 0; i < 4; i++)
+            for (int j = 0; j < 4; j++)
+                msg.append(",").append(turretRot.get(i, j));
+        sendPacket(msg.toString());
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+}
+
 }

@@ -51,8 +51,11 @@ public class TurnAction extends AbstractInputAction
 		av.setLocalRotation(newRotation);
 
 		// Avoid crash in single-player mode
-		if (protClient != null)
-			protClient.sendMoveMessage(av.getWorldLocation(), av.getWorldRotation());
+		protClient.sendMoveMessage(
+			av.getWorldLocation(),
+			av.getWorldRotation(),
+			game.getTankTurret().getLocalRotation()
+		);
 	}
 }
 
