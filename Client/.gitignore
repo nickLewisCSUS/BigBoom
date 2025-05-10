@@ -1,0 +1,9 @@
+# Ignore all compiled class files
+#.class
+
+# Ignore build artifacts and temp files
+*.log
+*.tmp
+*.swp
+bin/
+out/
