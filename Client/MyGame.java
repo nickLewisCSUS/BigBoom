@@ -25,6 +25,7 @@ import org.joml.*;
 import net.java.games.input.*;
 import net.java.games.input.Component.Identifier;
 import net.java.games.input.Component.Identifier.*;
+import net.java.games.input.Event;
 import tage.networking.IGameConnection.ProtocolType;
 import tage.nodeControllers.RotationController;
 import tage.physics.*;
@@ -643,26 +644,6 @@ public class MyGame extends VariableFrameRateGame
 				}
 				break;
 			}
-			case KeyEvent.VK_UP:
-			{
-				updateGunPitch((float)Math.toRadians(-1.5));
-				break;
-			}
-			case KeyEvent.VK_DOWN:
-			{
-				updateGunPitch((float)Math.toRadians(1.5));
-				break;
-			}			
-			case KeyEvent.VK_LEFT:
-			{
-				updateTurretYaw((float)Math.toRadians(1.5));
-				break;
-			}
-			case KeyEvent.VK_RIGHT:
-			{
-				updateTurretYaw((float)Math.toRadians(-1.5));
-				break;
-			}
 			case KeyEvent.VK_SPACE:
 			{
 				System.out.println("Starting physics...");
@@ -700,10 +681,41 @@ public class MyGame extends VariableFrameRateGame
 		TurnAction turnAction = new TurnAction(this, protClient);
 		ToggleHealthBarAction toggleHealthBar = new ToggleHealthBarAction();
 
+		// Arrow key actions
+		AbstractInputAction pitchUp = new AbstractInputAction() {
+			public void performAction(float time, Event evt) {
+				updateGunPitch((float)Math.toRadians(-1.5));
+			}
+		};
+
+		AbstractInputAction pitchDown = new AbstractInputAction() {
+			public void performAction(float time, Event evt) {
+				updateGunPitch((float)Math.toRadians(1.5));
+			}
+		};
+
+		AbstractInputAction yawLeft = new AbstractInputAction() {
+			public void performAction(float time, Event evt) {
+				updateTurretYaw((float)Math.toRadians(1.5));
+			}
+		};
+
+		AbstractInputAction yawRight = new AbstractInputAction() {
+			public void performAction(float time, Event evt) {
+				updateTurretYaw((float)Math.toRadians(-1.5));
+			}
+		};
+
 		im.associateActionWithAllKeyboards(Key.W, fwdAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 		im.associateActionWithAllKeyboards(Key.S, fwdAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 		im.associateActionWithAllKeyboards(Key.A, turnAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 		im.associateActionWithAllKeyboards(Key.D, turnAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+
+		// Bind to arrow keys
+		im.associateActionWithAllKeyboards(net.java.games.input.Component.Identifier.Key.UP, pitchUp, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+		im.associateActionWithAllKeyboards(net.java.games.input.Component.Identifier.Key.DOWN, pitchDown, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+		im.associateActionWithAllKeyboards(net.java.games.input.Component.Identifier.Key.LEFT, yawLeft, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+		im.associateActionWithAllKeyboards(net.java.games.input.Component.Identifier.Key.RIGHT, yawRight, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 
 		// im.associateActionWithAllGamepads(Identifier.Button._1, fwdAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 		// im.associateActionWithAllGamepads(Identifier.Axis.X, turnAction, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
@@ -1002,7 +1014,7 @@ public class MyGame extends VariableFrameRateGame
 	public ArrayList<PowerUp> getPowerUps() {
 		return powerUps;
 	}
-	
+
 	public TextureImage getGhostHealthBarTexture() {
 		return ghostHealthBarT;
 	}
