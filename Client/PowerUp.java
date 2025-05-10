@@ -75,8 +75,8 @@ public abstract class PowerUp {
         boolean tooClose;
 
         do {
-            x = (rand.nextFloat() - 0.5f) * 50f;
-            z = (rand.nextFloat() - 0.5f) * 50f;
+            x = (rand.nextFloat() - 0.5f) * 300f;
+            z = (rand.nextFloat() - 0.5f) * 300f;
             mazeHeight = game.getMaze().getHeight(x, z);
 
             distanceToPlayer= (float) Math.sqrt(

@@ -211,15 +211,15 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void loadTextures()
-	{	tankT = new TextureImage("metal.jpg");
-		slowTankT = new TextureImage("terrain_texture1.png");
+	{	tankT = new TextureImage("fastTank.png");
+		slowTankT = new TextureImage("slowTank.png");
 		shieldT = new TextureImage("sheild.jpg");
-		ghostT = new TextureImage("metal.jpg");
+		ghostT = new TextureImage("fastTank.png");
 		terrainHeightMap = new TextureImage("terrain_height.png");
 		terrainT = new TextureImage("terrain_texture1.png");
 		mazeHeightMap = new TextureImage("maze.png");
 		mazeT = new TextureImage("metal.jpg");
-		speedBoostT = new TextureImage("blank.png");//"speedBoostTx.png");
+		speedBoostT = new TextureImage("blank.png");
 		playerHealthBarT = new TextureImage("red.png");
 		healthBoostT = new TextureImage("healthBoost.png");
 		turretT = new TextureImage("red.png");
@@ -807,58 +807,49 @@ public class MyGame extends VariableFrameRateGame
     }
 
     private void buildAvatar() {
-        if (useSlowTank) {
-        	// Tank Body (parent)
-        	avatar = new GameObject(GameObject.root(), tankBodyS, playerHealthBarT);
-        	avatar.setLocalTranslation(new Matrix4f().translation(3,0,-3));
-        	avatar.setLocalScale(new Matrix4f().scaling(0.12f));
+		float scale = useSlowTank ? getSlowTankScale() : getFastTankScale();
+		TextureImage texture = useSlowTank ? slowTankT : tankT;
 
-        	// Turret base (child of tank body)
-        	tankTurret = new GameObject(avatar, tankTurretS, playerHealthBarT);
-        	tankTurret.setLocalTranslation(new Matrix4f().translation(0f,0.25f,0.4f));
-        	tankTurret.propagateTranslation(true);
-        	tankTurret.propagateRotation(true);
-			tankTurret.applyParentRotationToPosition(true);
+		// Tank Body (parent)
+		avatar = new GameObject(GameObject.root(), tankBodyS, texture);
+		avatar.setLocalTranslation(new Matrix4f().translation(3, 0, -3));
+		avatar.setLocalScale(new Matrix4f().scaling(scale));
 
-        	// Gun (child of turret base)
-        	tankGun = new GameObject(tankTurret, tankGunS, playerHealthBarT);
-        	tankGun.setLocalTranslation(new Matrix4f().translation(0,0.25f,0.7f));
-        	tankGun.propagateTranslation(true);
-        	tankGun.propagateRotation(true);
-			tankGun.applyParentRotationToPosition(true);
-		} else {
-        	// Tank Body (parent)
-        	avatar = new GameObject(GameObject.root(), tankBodyS, playerHealthBarT);
-        	avatar.setLocalTranslation(new Matrix4f().translation(3,0,-3));
-        	avatar.setLocalScale(new Matrix4f().scaling(0.1f));
+		// Scaled offsets (just like GhostAvatar)
+		float turretOffsetY = 0.25f;
+		float turretOffsetZ = 0.4f * scale;
+		float gunOffsetY = 0.25f;
+		float gunOffsetZ = 0.7f * scale;
 
-	        // Turret base (child of tank body)
-   	    	tankTurret = new GameObject(avatar, tankTurretS, playerHealthBarT);
-    		tankTurret.setLocalTranslation(new Matrix4f().translation(0f,0.25f,0.4f));
-        	tankTurret.propagateTranslation(true);
-        	tankTurret.propagateRotation(true);
-			tankTurret.applyParentRotationToPosition(true);
+		// Turret base
+		tankTurret = new GameObject(avatar, tankTurretS, texture);
+		tankTurret.setLocalTranslation(new Matrix4f().translation(0f, turretOffsetY, turretOffsetZ));
+		tankTurret.propagateTranslation(true);
+		tankTurret.propagateRotation(true);
+		tankTurret.applyParentRotationToPosition(true);
 
-        	// Gun (child of turret base)
-        	tankGun = new GameObject(tankTurret, tankGunS, playerHealthBarT);
-        	tankGun.setLocalTranslation(new Matrix4f().translation(0,0.25f,0.7f));
-        	tankGun.propagateTranslation(true);
-        	tankGun.propagateRotation(true);
-			tankGun.applyParentRotationToPosition(true);
-		}
-		avatar.lookAt(new Vector3f(0,0,0));
+		// Gun
+		tankGun = new GameObject(tankTurret, tankGunS, texture);
+		tankGun.setLocalTranslation(new Matrix4f().translation(0f, gunOffsetY, gunOffsetZ));
+		tankGun.propagateTranslation(true);
+		tankGun.propagateRotation(true);
+		tankGun.applyParentRotationToPosition(true);
 
-		Matrix4f correctedTransform = new Matrix4f();
-		correctedTransform.identity();
-		correctedTransform.mul(new Matrix4f().rotationZ((float)Math.toRadians(90.0f)));
-		correctedTransform.setTranslation(avatar.getWorldLocation());
+		avatar.lookAt(new Vector3f(0, 0, 0));
 
+		// Optional transform correction
+		Matrix4f correctedTransform = new Matrix4f().identity()
+			.mul(new Matrix4f().rotationZ((float) Math.toRadians(90.0f)))
+			.setTranslation(avatar.getWorldLocation());
 
-		headlightNode = new GameObject(avatar, linxS, playerHealthBarT); // Or dummy shape/tex
+		// Headlight node
+		headlightNode = new GameObject(avatar, linxS, playerHealthBarT);
 		headlightNode.setLocalScale(new Matrix4f().scaling(0f)); // invisible
 		headlightNode.setLocalTranslation(new Matrix4f().translation(0f, 0.3f, 0f));
+
 		avatars.add(avatar);
-    }
+	}
+
 	
 
 	public ObjShape getSlowTankShape() {
@@ -910,7 +901,7 @@ public class MyGame extends VariableFrameRateGame
 
 	public void buildPowerUps() {
 
-		int numEachType = 5;
+		int numEachType = 10;
 		
 		for (int i = 0; i < numEachType; i++) {
 			
