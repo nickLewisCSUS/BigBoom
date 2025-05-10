@@ -54,16 +54,18 @@ public class GhostAvatar extends GameObject
 }
 
 	public void createHealthBar(ObjShape shape, TextureImage texture) {
-		ghostHealthBar = new GameObject(this, shape, texture);
-		updateHealthBar();   
+		MyGame myGame = (MyGame)(engine.getGame()); 
+		TextureImage ghostHealthTex = myGame.getGhostHealthBarTexture();
+		ghostHealthBar = new GameObject(this, shape, ghostHealthTex);
+		updateHealthBar(); 
 	}
 
 	public void updateHealthBar() {
 		float healthRatio = currentHealth / maxHealth;
-		float baseLength = 0.25f;
+		float baseLength = 2.0f;
 		float ghostScaleFactor = 1f / 0.25f;
-		ghostHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 0.4f, 0f));
-		ghostHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio * ghostScaleFactor, 0.001f, 0.001f));
+		ghostHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 1.5f, 0f));
+		ghostHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio * ghostScaleFactor, 0.1f, 0.1f));
 	}
 
 	public void setHealth(float health) {

@@ -50,7 +50,7 @@ public class MyGame extends VariableFrameRateGame
 	private GameObject avatar, x, y, z, playerHealthBar,terrain, maze, turret, headlightNode, tankTurret, tankGun;
 	//private AnimatedShape turretS;
 	private ObjShape ghostS, tankS, slowTankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, healthBoostS, turretS, tankBodyS, tankTurretS, tankGunS;
-	private TextureImage tankT, slowTankT, ghostT, playerHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, healthBoostT, turretT;
+	private TextureImage tankT, slowTankT, ghostT, playerHealthBarT, ghostHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, healthBoostT, turretT;
 	
 	private boolean useSlowTank = false;
 
@@ -191,7 +191,7 @@ public class MyGame extends VariableFrameRateGame
 		// turretS.loadAnimation("SCAN", "turretScan.rka");
 		// turretS.loadAnimation("ACTIVATE", "turretActivate.rka");
 		// turretS.loadAnimation("DEACTIVATE", "turretDeactivate.rka");
-		ghostS = new Sphere();
+		ghostHealthBarT = new TextureImage("red.png");
 		tankS = new ImportedModel("tank.obj");
 		slowTankS = new ImportedModel("tank3.obj");
 		shieldS = new ImportedModel("sheildmodel.obj");
@@ -220,7 +220,7 @@ public class MyGame extends VariableFrameRateGame
 		mazeHeightMap = new TextureImage("maze.png");
 		mazeT = new TextureImage("metal.jpg");
 		speedBoostT = new TextureImage("blank.png");
-		playerHealthBarT = new TextureImage("red.png");
+		playerHealthBarT = new TextureImage("blue.jpg");
 		healthBoostT = new TextureImage("healthBoost.png");
 		turretT = new TextureImage("red.png");
 	}
@@ -417,9 +417,9 @@ public class MyGame extends VariableFrameRateGame
 		} 
 
 		if (showHealthBar) {
-			playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 2.5f, 0f));
+			playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 1.5f, 0f));
 			float healthRatio = currentHealth / maxHealth;
-			float baseLength = 3.0f;
+			float baseLength = 7.0f;
 			playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.1f, 0.1f));
 		} else {
 			playerHealthBar.setLocalScale(new Matrix4f().scaling(0f)); // Hide it safely
@@ -549,13 +549,6 @@ public class MyGame extends VariableFrameRateGame
 			moveDirection = MovementDirection.NONE;
 			nextPosition = null;
 		}
-
-		// Update health bar position and scale
-		playerHealthBar.setLocalTranslation(new Matrix4f().translation(0f, 0.4f, 0f));
-		float healthRatio = currentHealth / maxHealth;
-		float baseLength = 0.25f;
-		playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.001f, 0.001f));
-		playerHealthBar.getRenderStates().setColor(new Vector3f(1f, 0f, 0f));
 
 		if (boosted && System.currentTimeMillis() >= boostEndTime) {
 			boosted = false;
@@ -1008,6 +1001,10 @@ public class MyGame extends VariableFrameRateGame
 	
 	public ArrayList<PowerUp> getPowerUps() {
 		return powerUps;
+	}
+	
+	public TextureImage getGhostHealthBarTexture() {
+		return ghostHealthBarT;
 	}
 
 	public void increasePlayerHealth(float amount) {
