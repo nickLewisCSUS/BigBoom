@@ -51,11 +51,11 @@ public class MyGame extends VariableFrameRateGame
 
 	private GameObject avatar, x, y, z, playerHealthBar,terrain, maze, turret, headlightNode, tankTurret, tankGun, gunTip;
 	private AnimatedShape turretS_A;
-	private ObjShape ghostS, tankS, slowTankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, healthBoostS, tankBodyS, tankTurretS, tankGunS, bulletShape, turretS;
+	private ObjShape ghostS, tankS, slowTankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, healthBoostS, tankBodyS, tankTurretS, tankGunS, bulletS, turretS;
 	private TextureImage tankT, slowTankT, ghostT, playerHealthBarT, ghostHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, healthBoostT, turretT, bulletT;
 	
 	private boolean useSlowTank = false;
-	private boolean useAnimations = false;
+	private boolean useAnimations = true;
 
 	private boolean physicsRenderEnabled = true;
 
@@ -125,6 +125,9 @@ public class MyGame extends VariableFrameRateGame
 	public float getSlowTankScale() { return 0.12f; }
 	public float getFastTankScale() { return 0.10f; }
 	private ArrayList<Bullet> activeBullets = new ArrayList<>();
+
+	private long lastFireTime = 0;
+	private final long fireCoolDownMillis = 250;
 
 	public boolean isPowerUpAuthority() {
 		return isPowerUpAuthority;
@@ -199,8 +202,7 @@ public class MyGame extends VariableFrameRateGame
 	@Override
 	public void loadShapes()
 
-	{	ghostHealthBarT = new TextureImage("red.png");
-		ghostS = new Sphere();
+	{	ghostS = new Sphere();
 		slowTankS = new ImportedModel("tank3.obj");
 		shieldS = new ImportedModel("sheildmodel.obj");
 		linxS = new Line(new Vector3f(0f,0f,0f), new Vector3f(3f,0f,0f));
@@ -214,6 +216,8 @@ public class MyGame extends VariableFrameRateGame
         tankBodyS = new ImportedModel("tankBody.obj");
         tankTurretS = new ImportedModel("tankTurret.obj");
         tankGunS = new ImportedModel("tankGun.obj");
+		bulletS = new ImportedModel("tankRound.obj");
+
 
 		if (useAnimations) {
 			turretS_A = new AnimatedShape("turret.rkm", "turret.rks");
@@ -241,6 +245,8 @@ public class MyGame extends VariableFrameRateGame
 		playerHealthBarT = new TextureImage("blue.jpg");
 		healthBoostT = new TextureImage("healthBoost.png");
 		turretT = new TextureImage("red.png");
+		bulletT = new TextureImage("bulletT.png");
+		ghostHealthBarT = new TextureImage("red.png");
 	}
 
 	@Override
@@ -1228,13 +1234,22 @@ public class MyGame extends VariableFrameRateGame
 	}
 	
 	public void fireBullet() { 
+		long currentTime = System.currentTimeMillis();
+		if (currentTime - lastFireTime < fireCoolDownMillis) {
+			// Too soon to fire
+			return;
+		}
+
+		lastFireTime = currentTime;
+
 		Vector3f position = gunTip.getWorldLocation();
+		Matrix4f rotation = gunTip.getWorldRotation();
 		Vector3f direction = tankGun.getWorldForwardVector();
 		UUID shooterId = protClient.getID();
 		System.out.println("ATTEMPTING TO FIRE BULLET");
 		System.out.println("Bullet Spawn Y: " + position.y());
 		System.out.println("Applying Bullet Velocity: " + direction.mul(30f));
-		Bullet bullet = new Bullet(engine, physicsEngine, ghostS, ghostT, position, direction, this, gunTip, true, shooterId);
+		Bullet bullet = new Bullet(engine, physicsEngine, bulletS, bulletT, position, rotation, direction, this, gunTip, true, shooterId);
 		activeBullets.add(bullet);
 
 		if (protClient != null) {
@@ -1305,6 +1320,14 @@ public class MyGame extends VariableFrameRateGame
 			// 		break;
 			// 	}
 			// }
+			for (PowerUp boost : powerUps) {
+				if (obj.getWorldLocation().distance(boost.getBoostObject().getWorldLocation()) < 1.0f) {
+					System.out.println("Bullet hit power-up!");
+					// b.deactivate(engine, physicsEngine);
+					// iterator.remove();
+					break;
+				}
+			}
 		}
 	}
 

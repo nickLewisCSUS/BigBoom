@@ -20,11 +20,13 @@ public class Bullet {
     private boolean ownedByLocalPlayer;
     private UUID shooterID;
 
-    public Bullet(Engine engine, PhysicsEngine physics, ObjShape shape, TextureImage texture, Vector3f worldPosition, Vector3f direction, MyGame game, GameObject gunTip, boolean ownedByLocalPlayer, UUID shooterID) {
+    public Bullet(Engine engine, PhysicsEngine physics, ObjShape shape, TextureImage texture, Vector3f worldPosition, Matrix4f worldRotation, Vector3f direction, MyGame game, GameObject gunTip, boolean ownedByLocalPlayer, UUID shooterID)
+ {
         // Create visual bullet object
         bulletObj = new GameObject(GameObject.root(), shape, texture);
         bulletObj.setLocalTranslation(new Matrix4f().translation(worldPosition));
-        bulletObj.setLocalScale(new Matrix4f().scaling(0.5f));
+        bulletObj.setLocalScale(new Matrix4f().scaling(1f));
+        bulletObj.setLocalRotation(worldRotation);
         System.out.println(" Bullet Spawn Y: " + bulletObj.getWorldLocation().y());
         
         // Create physics objects using same world position

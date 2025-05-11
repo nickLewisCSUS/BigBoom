@@ -226,8 +226,21 @@ public class ProtocolClient extends GameConnectionClient
 
 			GhostAvatar ghost = game.getGhostManager().getGhostByID(shooterId);
 			GameObject ghostGunTip = (ghost != null) ? ghost.getGunTip() : null;
+			Matrix4f ghostRotation = ghostGunTip.getWorldRotation();
 
-			Bullet ghostBullet = new Bullet(game.getEngine(), game.getPhysicsEngine(), game.getGhostShape(), game.getGhostTexture(), pos, dir, game, ghostGunTip, false, shooterId );
+			Bullet ghostBullet = new Bullet(
+				game.getEngine(),
+				game.getPhysicsEngine(),
+				game.getGhostShape(),
+				game.getGhostTexture(),
+				pos,
+				ghostRotation,  
+				dir,
+				game,
+				ghostGunTip,
+				false,
+				shooterId
+			);
 			game.getActiveBullets().add(ghostBullet);
 		}
 
