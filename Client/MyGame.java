@@ -110,6 +110,9 @@ public class MyGame extends VariableFrameRateGame
 	private long shieldEndTime = 0;
 	private int nextBoostID = 0;
 
+	private long lastMoveSendTime = 0;
+	private final long MOVE_SEND_INTERVAL_MS = 100;
+
 	private boolean initializedBoosts = false;
 	private boolean isPowerUpAuthority = false;
 
@@ -598,11 +601,15 @@ public class MyGame extends VariableFrameRateGame
 				} else {
 					avatar.setLocalLocation(nextPosition);
 				}
-				protClient.sendMoveMessage(
-					avatar.getWorldLocation(),
-					avatar.getWorldRotation(),
-					tankTurret.getWorldRotation()
-				);
+				long now = System.currentTimeMillis();
+				if (now - lastMoveSendTime > MOVE_SEND_INTERVAL_MS) {
+					protClient.sendMoveMessage(
+						avatar.getWorldLocation(),
+						avatar.getWorldRotation(),
+						tankTurret.getWorldRotation()
+					);
+					lastMoveSendTime = now;
+				}
 			}
 			moveDirection = MovementDirection.NONE;
 			nextPosition = null;
@@ -934,7 +941,7 @@ public class MyGame extends VariableFrameRateGame
 		tankTurret.applyParentRotationToPosition(true);
 
         // Gun (child of turret base)
-        tankGun = new GameObject(tankTurret, tankGunS, playerHealthBarT);
+        tankGun = new GameObject(tankTurret, tankGunS, texture);
         tankGun.setLocalTranslation(new Matrix4f().translation(0,gunOffsetY, gunOffsetZ));
         tankGun.propagateTranslation(true);
         tankGun.propagateRotation(true);
