@@ -177,6 +177,19 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 				}
 			}
 
+			if (messageTokens[0].equals("bullet")) {
+				UUID senderId = UUID.fromString(messageTokens[1]);
+				StringBuilder msg = new StringBuilder("bullet");
+				for (int i = 1; i < messageTokens.length; i++) {
+					msg.append(",").append(messageTokens[i]);
+				}
+				try {
+					forwardPacketToAll(msg.toString(), senderId);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+
 			// POWERUP --- Case where server receives a powerup message
 			if (messageTokens[0].compareTo("powerup") == 0) {
 				UUID clientID = UUID.fromString(messageTokens[1]);
