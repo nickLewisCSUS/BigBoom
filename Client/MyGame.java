@@ -247,7 +247,7 @@ public class MyGame extends VariableFrameRateGame
 		speedBoostT = new TextureImage("blank.png");
 		playerHealthBarT = new TextureImage("blue.jpg");
 		healthBoostT = new TextureImage("healthBoost.png");
-		turretT = new TextureImage("red.png");
+		turretT = new TextureImage("turretTx.png");
 		bulletT = new TextureImage("bulletT.png");
 		ghostHealthBarT = new TextureImage("red.png");
 	}
