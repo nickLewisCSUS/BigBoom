@@ -69,6 +69,7 @@ public class MyGame extends VariableFrameRateGame
 	private boolean showHealthBoostHUD = false;
 
 	private Map<UUID, Integer> scoreboard = new HashMap<>();
+	private Map<UUID, String> playerNameMap = new HashMap<>();
 
 	private boolean turretShouldRotate = false;
 	private TurretAIController turretAI;
@@ -417,6 +418,8 @@ public class MyGame extends VariableFrameRateGame
 		}
 		Vector3f white = new Vector3f(1f, 1f, 1f);
 		(engine.getHUDmanager()).setHUD2(scoreText.toString(), white, 20, 900);
+
+		if (!running) return;
 		
 		// build and set HUD
 		int elapsTimeSec = Math.round((float)(System.currentTimeMillis()-startTime)/1000.0f);
@@ -427,6 +430,26 @@ public class MyGame extends VariableFrameRateGame
 
 		Vector3f hudColor = new Vector3f(0.9f, 0.6f, 0.1f); 
 		(engine.getHUDmanager()).setHUD3(hudText.toString(), hudColor, 25, 40);
+
+		for (UUID playerId : scoreboard.keySet()) {
+			int kills = scoreboard.get(playerId);
+			if (kills >= 5 && running) {
+				running = false;
+
+				String winnerName = playerNameMap.getOrDefault(playerId, playerId.toString());
+				String winner = playerId.equals(protClient.getID()) ? "YOU WIN!" : winnerName + " WINS!";
+
+				// Centered on screen
+				int screenWidth = engine.getRenderSystem().getGLCanvas().getWidth();
+				int screenHeight = engine.getRenderSystem().getGLCanvas().getHeight();
+				int centerX = screenWidth / 2 - 150;
+				int centerY = screenHeight / 2;
+
+				(engine.getHUDmanager()).setHUD1(winner, new Vector3f(1f, 0f, 0f), centerX, centerY);
+				System.out.println(winner + " Game over!");
+				break;
+			}
+		}
 
 		if (!initializedBoosts && (isPowerUpAuthority || !isClientConnected)) {
 			int counter = 0;
@@ -1069,6 +1092,13 @@ public class MyGame extends VariableFrameRateGame
 
 	public void updateScoreboard(Map<UUID, Integer> newBoard) {
 		scoreboard = newBoard;
+
+		// Update player name mapping for display
+		playerNameMap.clear();
+		int i = 1;
+		for (UUID id : scoreboard.keySet()) {
+			playerNameMap.put(id, "Player " + i++);
+		}
 	}
 
 	public boolean isUsingSlowTank() {
