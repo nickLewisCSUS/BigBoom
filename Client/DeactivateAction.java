@@ -10,7 +10,7 @@ public class DeactivateAction extends BTAction {
     private AnimatedShape turretS;
     private boolean deactivateAnimationStarted = false;
     private float elapsedTime = 0f;
-    private final float animationDuration = 3000f;
+    private final float animationDuration = 180f;
 
     public DeactivateAction(MyGame g) {
         game = g;
@@ -23,7 +23,7 @@ public class DeactivateAction extends BTAction {
         if (closest == null) return BTStatus.BH_FAILURE;
 
         if (!deactivateAnimationStarted) {
-            System.out.println("[DeactivateAction] Starting DEACTIVATE animation");
+            //System.out.println("[DeactivateAction] Starting DEACTIVATE animation");
             turretS.playAnimation("DEACTIVATE", 3.0f, AnimatedShape.EndType.PAUSE, 0);
             deactivateAnimationStarted = true;
             elapsedTime = 0f;
@@ -31,9 +31,9 @@ public class DeactivateAction extends BTAction {
             return BTStatus.BH_RUNNING;
         }
         elapsedTime += e;
-        System.out.println(elapsedTime);
+        //System.out.println(elapsedTime);
         if (elapsedTime >= animationDuration) {
-            System.out.println("[DeactivateAction] Deactivation animation completed, elapsedTime: " + elapsedTime);
+            //System.out.println("[DeactivateAction] Deactivation animation completed, elapsedTime: " + elapsedTime);
             return BTStatus.BH_SUCCESS;
         }
         return BTStatus.BH_RUNNING; 

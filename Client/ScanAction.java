@@ -16,7 +16,7 @@ public class ScanAction extends BTAction {
 
     protected BTStatus update(float e) {
         if (!started) {
-            System.out.println("[ScanAction] Playing SCAN animation (loop)");
+            //System.out.println("[ScanAction] Playing SCAN animation (loop)");
             turretS.stopAnimation();
             turretS.playAnimation("SCAN", 1.0f, AnimatedShape.EndType.LOOP, 0);
             started = true;

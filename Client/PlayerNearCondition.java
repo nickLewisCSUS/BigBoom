@@ -36,7 +36,7 @@ public class PlayerNearCondition extends BTCondition {
 
         float dist = closest.getWorldLocation().distance(turret.getWorldLocation());
         boolean inRange = (dist >= 10f && dist <= 30f);
-        System.out.println("Previous State: " + controller.getPreviousState());
+        //System.out.println("Previous State: " + controller.getPreviousState());
         if (inRange && controller.getPreviousState() != TurretAIController.TurretState.NEAR) {
             if (controller.getPreviousState() == TurretAIController.TurretState.FAR) {
                 activateAction.setActivateAnimationStarted(false);
@@ -46,7 +46,7 @@ public class PlayerNearCondition extends BTCondition {
             deactivateAction.setDeactivateAnimationStarted(false);
             trackPlayerAction.setPlayerTrackingStarted(false);
         }
-        System.out.println("DEBUG [PlayerNearCondition]: Closest distance = " + dist + ", In range: " + (dist >= 10f && dist <= 30f));
+        //System.out.println("DEBUG [PlayerNearCondition]: Closest distance = " + dist + ", In range: " + (dist >= 10f && dist <= 30f));
         return inRange;
     }
 }

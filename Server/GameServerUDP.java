@@ -65,6 +65,7 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 			if(messageTokens[0].compareTo("bye") == 0)
 			{	UUID clientID = UUID.fromString(messageTokens[1]);
 				System.out.println("Exit request received from - " + clientID.toString());
+				System.out.println("Client size:" + (getClients().size() == 1));
 				sendByeMessages(clientID);
 				removeClient(clientID);
 			}
