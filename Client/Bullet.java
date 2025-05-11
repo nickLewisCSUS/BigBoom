@@ -1,5 +1,7 @@
 package Client;
 
+import java.util.UUID;
+
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
@@ -16,8 +18,9 @@ public class Bullet {
     private PhysicsObject bulletPhys;
     private boolean active = true;
     private boolean ownedByLocalPlayer;
+    private UUID shooterID;
 
-    public Bullet(Engine engine, PhysicsEngine physics, ObjShape shape, TextureImage texture, Vector3f worldPosition, Vector3f direction, MyGame game, GameObject gunTip, boolean ownedByLocalPlayer) {
+    public Bullet(Engine engine, PhysicsEngine physics, ObjShape shape, TextureImage texture, Vector3f worldPosition, Vector3f direction, MyGame game, GameObject gunTip, boolean ownedByLocalPlayer, UUID shooterID) {
         // Create visual bullet object
         bulletObj = new GameObject(GameObject.root(), shape, texture);
         bulletObj.setLocalTranslation(new Matrix4f().translation(worldPosition));
@@ -42,6 +45,7 @@ public class Bullet {
         bulletObj.setPhysicsObject(bulletPhys);
 
         this.ownedByLocalPlayer = ownedByLocalPlayer;
+        this.shooterID = shooterID;
     }
 
     public GameObject getBulletObject() {
@@ -57,5 +61,9 @@ public class Bullet {
 
     public boolean isOwnedByLocalPlayer() {
         return ownedByLocalPlayer;
+    }
+
+        public UUID getShooterID() {
+        return shooterID;
     }
 }

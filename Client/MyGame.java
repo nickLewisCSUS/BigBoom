@@ -1200,10 +1200,11 @@ public class MyGame extends VariableFrameRateGame
 	public void fireBullet() { 
 		Vector3f position = gunTip.getWorldLocation();
 		Vector3f direction = tankGun.getWorldForwardVector();
+		UUID shooterId = protClient.getID();
 		System.out.println("ATTEMPTING TO FIRE BULLET");
 		System.out.println("Bullet Spawn Y: " + position.y());
 		System.out.println("Applying Bullet Velocity: " + direction.mul(30f));
-		Bullet bullet = new Bullet(engine, physicsEngine, ghostS, ghostT, position, direction, this, gunTip, true);
+		Bullet bullet = new Bullet(engine, physicsEngine, ghostS, ghostT, position, direction, this, gunTip, true, shooterId);
 		activeBullets.add(bullet);
 
 		if (protClient != null) {
@@ -1227,7 +1228,7 @@ public class MyGame extends VariableFrameRateGame
 			Vector3f loc = obj.getWorldLocation();
 			System.out.println("Bullet Height: " + loc.y());
 
-			//float mazeHeight = terrain.getHeight(loc.x(), loc.z());
+			// float mazeHeight = terrain.getHeight(loc.x(), loc.z());
 			if (loc.y() < 0 - 10f) { // too low = delete
 				//System.out.println("Terrain Height: " + terrainHeight);
 				b.deactivate(engine, physicsEngine);
@@ -1246,8 +1247,19 @@ public class MyGame extends VariableFrameRateGame
 				if (!b.isOwnedByLocalPlayer() && b.getBulletObject().getWorldLocation().distance(avatar.getWorldLocation()) < 1.5f) {
 					if (!isShieldActive()) {
 						currentHealth -= 10f;
-						if (currentHealth < 0) currentHealth = 0;
-						protClient.sendHealthUpdate(currentHealth);
+						if (currentHealth <= 0) {
+							currentHealth = maxHealth; // reset
+							updatePlayerHealthBar();
+							protClient.sendHealthUpdate(currentHealth);
+
+							// Add kill to the ghost avatar who fired this bullet
+							if (b.getShooterID() != null) {
+								protClient.sendKillToServer(b.getShooterID());
+							}
+							System.out.println("You were killed! Health reset and kill added.");
+						} else {
+							protClient.sendHealthUpdate(currentHealth);
+						}
 					}
 					b.deactivate(engine, physicsEngine);
 					iterator.remove();
@@ -1264,6 +1276,12 @@ public class MyGame extends VariableFrameRateGame
 			// 	}
 			// }
 		}
+	}
+
+	private void updatePlayerHealthBar() {
+		float healthRatio = currentHealth / maxHealth;
+		float baseLength = 7.0f;
+		playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.1f, 0.1f));
 	}
 
 	public PhysicsEngine getPhysicsEngine() {

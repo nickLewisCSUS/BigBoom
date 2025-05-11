@@ -227,7 +227,7 @@ public class ProtocolClient extends GameConnectionClient
 			GhostAvatar ghost = game.getGhostManager().getGhostByID(shooterId);
 			GameObject ghostGunTip = (ghost != null) ? ghost.getGunTip() : null;
 
-			Bullet ghostBullet = new Bullet(game.getEngine(), game.getPhysicsEngine(), game.getGhostShape(), game.getGhostTexture(), pos, dir, game, ghostGunTip, false);
+			Bullet ghostBullet = new Bullet(game.getEngine(), game.getPhysicsEngine(), game.getGhostShape(), game.getGhostTexture(), pos, dir, game, ghostGunTip, false, shooterId );
 			game.getActiveBullets().add(ghostBullet);
 		}
 
@@ -557,6 +557,15 @@ public class ProtocolClient extends GameConnectionClient
 	public void sendHealthUpdateToGhost(UUID ghostId, float newHealth) {
 		try {
 			String msg = String.format("ghosthealth,%s,%.2f", ghostId.toString(), newHealth);
+			sendPacket(msg);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void sendKillToServer(UUID killerId) {
+		try {
+			String msg = "kill," + killerId.toString();
 			sendPacket(msg);
 		} catch (IOException e) {
 			e.printStackTrace();

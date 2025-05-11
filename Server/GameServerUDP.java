@@ -113,6 +113,11 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 				}
 			}
 
+			if (messageTokens[0].equals("kill")) {
+				UUID killerId = UUID.fromString(messageTokens[1]);
+				incrementKill(killerId);
+			}
+
 			if (messageTokens[0].equals("headlight")) {
 				UUID clientID = UUID.fromString(messageTokens[1]);
 			
@@ -430,4 +435,5 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 			e.printStackTrace();
 		}
 	}
+	
 }
