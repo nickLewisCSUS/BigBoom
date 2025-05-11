@@ -46,7 +46,7 @@ public abstract class PowerUp {
     }
 
     public void update() {
-        if (game.isPowerUpAuthority()) { 
+        if (game.isPowerUpAuthority()) {
             if (!active && System.currentTimeMillis() >= cooldownEndTime) {
                 reposition();
                 active = true;

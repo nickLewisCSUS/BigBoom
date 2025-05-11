@@ -86,7 +86,7 @@ public class MyGame extends VariableFrameRateGame
 	private ProtocolType serverProtocol;
 	private ProtocolClient protClient;
 	private boolean isClientConnected = false;
-	private boolean running = false;
+	private boolean running = true;
 
 	private int battleField;
 	private PhysicsEngine physicsEngine;
@@ -676,12 +676,6 @@ public class MyGame extends VariableFrameRateGame
 				// }
 				break;
 			}
-			case KeyEvent.VK_Y:
-			{
-				System.out.println("Starting physics...");
-				running = true;
-				break;
-			}
 			case KeyEvent.VK_F:
 			{
 				headlightOn = !headlightOn;
@@ -977,7 +971,7 @@ public class MyGame extends VariableFrameRateGame
 
 	public void buildPowerUps() {
 
-		int numEachType = 10;
+		int numEachType = 5;
 		
 		for (int i = 0; i < numEachType; i++) {
 			
@@ -1011,10 +1005,6 @@ public class MyGame extends VariableFrameRateGame
             rotCtrl.addTarget(healthObj);
 			healthPhys = (engine.getSceneGraph().addPhysicsSphere(0, toDoubleArray(healthObj.getLocalTranslation().get(new float[16])), 0.7f));	
 			healthObj.setPhysicsObject(healthPhys);
-
-			HealthBoost healthBoost = new HealthBoost(this, healthObj, healthPhys, nextBoostID++, protClient);
-			powerUps.add(healthBoost);
-
 			
 			// --- Sheild Powerup ---
 			GameObject sheildObj = new GameObject(GameObject.root(), shieldS, shieldT);
