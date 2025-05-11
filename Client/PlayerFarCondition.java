@@ -25,12 +25,12 @@ public class PlayerFarCondition extends BTCondition {
 
         float dist = closest.getWorldLocation().distance(turret.getWorldLocation());
         boolean inRange = (dist > 30f);
-        System.out.println("Previous State: " + controller.getPreviousState());
+        //System.out.println("Previous State: " + controller.getPreviousState());
         if (inRange && controller.getPreviousState() != TurretAIController.TurretState.FAR) {
             controller.setPreviousState(TurretState.FAR);
             activateAction.setActivateAnimationStarted(false);
             activateAction.setScanActivationStarted(false);
-            System.out.println("DEBUG [PlayerFarCondition]: Closest distance = " + dist + ", In range: " + (dist > 30.0f));
+            //System.out.println("DEBUG [PlayerFarCondition]: Closest distance = " + dist + ", In range: " + (dist > 30.0f));
         }
         return inRange;
     }

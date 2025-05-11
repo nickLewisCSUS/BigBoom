@@ -27,7 +27,7 @@ public class TrackPlayerAction extends BTAction {
         Vector3f turretLoc = turret.getWorldLocation();
 
         if (!playerTrackingStarted) {
-            System.out.println("Stopping Animation!");
+           //System.out.println("Stopping Animation!");
             turretS.stopAnimation();
             playerTrackingStarted = true;
         }
@@ -39,7 +39,7 @@ public class TrackPlayerAction extends BTAction {
         // Calculate rotation around Y-axis
         float angle = (float) Math.atan2(direction.x, direction.z); // z forward
         Matrix4f rot = new Matrix4f().rotateY(angle);
-        System.out.println("[TrackPlayerAction] Rotating turret to face closest player: " + closest);
+        //System.out.println("[TrackPlayerAction] Rotating turret to face closest player: " + closest);
         turret.setLocalRotation(rot);
 
         if (game.isClosestToTurret()) {

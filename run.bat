@@ -11,14 +11,17 @@ echo Select the mode to run:
 echo 1. Single-Player Mode (Non-Networked)
 echo 2. Run as Server
 echo 3. Run as Client
+goto :menuchoice
+
+:menuchoice
 set /p mode="Enter choice (1-3): "
 
 if "%mode%"=="1" goto :singleplayer
 if "%mode%"=="2" goto :server
 if "%mode%"=="3" goto :client
 
-echo Invalid choice! Please run the script again and choose a valid option.
-goto :eof
+echo Invalid choice! Please choose a valid option.
+goto :menuchoice
 
 :singleplayer
 echo.
@@ -36,7 +39,39 @@ java --add-exports java.base/java.lang=ALL-UNNAMED --add-exports java.desktop/su
 goto :eof
 
 :server
+echo.
 echo Starting Server Mode...
+echo Select IP mode:
+echo 1. Home Developer (defaultm first IPv4 found)
+echo 2. School Demo (130.68.xxx.xxx)
+goto :serverchoice
+
+:serverchoice
+set /p ipmode="Enter choice (1-2): "
+set IP=
+if "%ipmode%" == "1" goto :homedeveloper
+if "%ipmode%" == "2" goto :schooldemo
+
+echo Invalid choice! Please choose a valid option.
+goto :serverchoice
+
+:homedeveloper
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4"') do (
+    set "IP=%%a"
+    goto :gotIP   
+)
+
+:schooldemo
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4"') do (
+    echo %%a | findstr "130.86." >nul
+    if not errorlevel 1 (
+        set "IP=%%a"
+        goto :gotIP
+    )
+)
+
+:gotIP
+set "IP=!IP:~1!"
 echo Server IP Address: !IP!
 echo Share this IP Address with clients.
 echo Server Running, Press Ctrl + C to exit.

@@ -49,12 +49,13 @@ public class MyGame extends VariableFrameRateGame
 	private Matrix4f initialTranslation, initialRotation, initialScale;
 	private double startTime, prevTime, elapsedTime, amt;
 
-	private GameObject avatar, x, y, z, playerHealthBar,terrain, maze, turret, headlightNode, tankTurret, tankGun;
-	//private AnimatedShape turretS;
-	private ObjShape ghostS, tankS, slowTankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, healthBoostS, turretS, tankBodyS, tankTurretS, tankGunS;
-	private TextureImage tankT, slowTankT, ghostT, playerHealthBarT, ghostHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, healthBoostT, turretT;
+	private GameObject avatar, x, y, z, playerHealthBar,terrain, maze, turret, headlightNode, tankTurret, tankGun, gunTip;
+	private AnimatedShape turretS_A;
+	private ObjShape ghostS, tankS, slowTankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, healthBoostS, tankBodyS, tankTurretS, tankGunS, bulletShape, turretS;
+	private TextureImage tankT, slowTankT, ghostT, playerHealthBarT, ghostHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, healthBoostT, turretT, bulletT;
 	
 	private boolean useSlowTank = false;
+	private boolean useAnimations = false;
 
 	private boolean physicsRenderEnabled = true;
 
@@ -122,9 +123,14 @@ public class MyGame extends VariableFrameRateGame
 
 	public float getSlowTankScale() { return 0.12f; }
 	public float getFastTankScale() { return 0.10f; }
+	private ArrayList<Bullet> activeBullets = new ArrayList<>();
 
 	public boolean isPowerUpAuthority() {
 		return isPowerUpAuthority;
+	}
+
+	public boolean isClientConnected() {
+		return isClientConnected;
 	}
 
 	public void setPowerUpAuthority(boolean value) {
@@ -191,13 +197,9 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void loadShapes()
-	{	turretS = new ImportedModel("turret1.obj");
-		// turretS = new AnimatedShape("turret.rkm", "turret.rks");
-		// turretS.loadAnimation("SCAN", "turretScan.rka");
-		// turretS.loadAnimation("ACTIVATE", "turretActivate.rka");
-		// turretS.loadAnimation("DEACTIVATE", "turretDeactivate.rka");
-		ghostHealthBarT = new TextureImage("red.png");
-		tankS = new ImportedModel("tank.obj");
+
+	{	ghostHealthBarT = new TextureImage("red.png");
+		ghostS = new Sphere();
 		slowTankS = new ImportedModel("tank3.obj");
 		shieldS = new ImportedModel("sheildmodel.obj");
 		linxS = new Line(new Vector3f(0f,0f,0f), new Vector3f(3f,0f,0f));
@@ -211,6 +213,16 @@ public class MyGame extends VariableFrameRateGame
         tankBodyS = new ImportedModel("tankBody.obj");
         tankTurretS = new ImportedModel("tankTurret.obj");
         tankGunS = new ImportedModel("tankGun.obj");
+
+		if (useAnimations) {
+			turretS_A = new AnimatedShape("turret.rkm", "turret.rks");
+			turretS_A.loadAnimation("SCAN", "turretScan.rka");
+			turretS_A.loadAnimation("ACTIVATE", "turretActivate.rka");
+			turretS_A.loadAnimation("DEACTIVATE", "turretDeactivate.rka");
+		} else {
+			turretS = new ImportedModel("turret.obj");
+		}
+
 
 	}
 
@@ -242,11 +254,11 @@ public class MyGame extends VariableFrameRateGame
         buildAvatar();
 
 		// build turret object
-		turret = new GameObject(GameObject.root(), turretS, turretT);
+		turret = new GameObject(GameObject.root(), (useAnimations ? turretS_A : turretS), turretT);
 		initialTranslation = (new Matrix4f()).translation(-40f,0f,2f);
 		turret.setLocalTranslation(initialTranslation);
 		initialScale = (new Matrix4f()).scaling(0.5f, 0.5f, 0.5f);
-		turret.setLocalScale(initialScale); 
+		turret.setLocalScale(initialScale);
 		
 		// add X,Y,-Z axes
 		x = new GameObject(GameObject.root(), linxS);
@@ -368,7 +380,9 @@ public class MyGame extends VariableFrameRateGame
 		setEarParameters();
 		turretSound.play();
 
-		// turretAI = new TurretAIController(this);
+		if (useAnimations) {
+			turretAI = new TurretAIController(this);
+		}
 	}
 
 	public GameObject getAvatar() { return avatar; }
@@ -391,6 +405,9 @@ public class MyGame extends VariableFrameRateGame
 		Camera c = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
 
 		orbitController.updateCameraPosition();
+		
+		// Step physics world
+		physicsEngine.update(0.016f); // 60Hz step
 
 		StringBuilder scoreText = new StringBuilder("Scoreboard:\n");
 		int i = 1;
@@ -405,7 +422,7 @@ public class MyGame extends VariableFrameRateGame
 		int elapsTimeSec = Math.round((float)(System.currentTimeMillis()-startTime)/1000.0f);
 		StringBuilder hudText = new StringBuilder("Powerups: ");
 		if (showSpeedBoostHUD) hudText.append("Speed Boost  ");
-		if (showShieldHUD)     hudText.append("Shiel  ");
+		if (showShieldHUD)     hudText.append("Shield  ");
 		if (showHealthBoostHUD) hudText.append("Healed  ");
 
 		Vector3f hudColor = new Vector3f(0.9f, 0.6f, 0.1f); 
@@ -453,9 +470,6 @@ public class MyGame extends VariableFrameRateGame
 			ghost.updateHeadlight();
 		}
 
-		// Step physics world
-        physicsEngine.update(0.016f); // 60Hz step
-
 		if (running && avatar.getPhysicsObject() != null) {
 			checkForCollisions();
 			physicsEngine.update((float)elapsTimeSec);
@@ -474,10 +488,13 @@ public class MyGame extends VariableFrameRateGame
 			combined.setTranslation(avatar.getWorldLocation());
 			double[] tempTransform = toDoubleArray(combined.get(vals));
 			avatar.getPhysicsObject().setTransform(tempTransform);
+
 		}
 		
-		// turretS.updateAnimation();
-		// turretAI.update((float) elapsedTime);
+		if (useAnimations) {
+			turretS_A.updateAnimation();
+			turretAI.update((float) elapsedTime);
+		}
 
 		for (PowerUpLight pul : powerUpLights) {
 			pul.spotlight.setLocation(pul.holder.getWorldLocation());
@@ -577,6 +594,8 @@ public class MyGame extends VariableFrameRateGame
 			showSpeedBoostHUD = false;
 			System.out.println("Speed boost ended.");
 		}
+		updateBullets();
+
 	}
 
 	private void checkForCollisions()
@@ -617,7 +636,15 @@ public class MyGame extends VariableFrameRateGame
 	@Override
 	public void keyPressed(KeyEvent e)
 	{	switch (e.getKeyCode())
-		{	case KeyEvent.VK_H:
+		{	case KeyEvent.VK_ESCAPE:
+			{
+				// Send the initial join message with a unique identifier for this client
+				System.out.println("sending bye message to protocol host");
+				protClient.sendByeMessage();
+				System.exit(0);
+		
+			}
+			case KeyEvent.VK_H:
 			{
 				showHealthBar = !showHealthBar;
 				break;
@@ -637,18 +664,19 @@ public class MyGame extends VariableFrameRateGame
 			}
 			case KeyEvent.VK_T:
 			{	
-				terrainFollowMode = !terrainFollowMode;
-				if (!terrainFollowMode) {
-					avatar.setLocalLocation(new Vector3f(0, 50, 0));
-					System.out.println("Free flight mode enabled.");
-				} else {	
-					avatar.setLocalLocation(new Vector3f(3,0,-3));
-					avatar.lookAt(new Vector3f(0,0,0));
-					System.out.println("Terrain-following mode enabled.");
-				}
+				fireBullet();
+				// terrainFollowMode = !terrainFollowMode;
+				// if (!terrainFollowMode) {
+				// 	avatar.setLocalLocation(new Vector3f(0, 50, 0));
+				// 	System.out.println("Free flight mode enabled.");
+				// } else {	
+				// 	avatar.setLocalLocation(new Vector3f(3,0,-3));
+				// 	avatar.lookAt(new Vector3f(0,0,0));
+				// 	System.out.println("Terrain-following mode enabled.");
+				// }
 				break;
 			}
-			case KeyEvent.VK_SPACE:
+			case KeyEvent.VK_Y:
 			{
 				System.out.println("Starting physics...");
 				running = true;
@@ -681,6 +709,11 @@ public class MyGame extends VariableFrameRateGame
 					Light.setGlobalAmbient(0.5f, 0.5f, 0.5f); // normal lighting
 					System.out.println("Dark mode OFF");
 				}
+				break;
+			}
+			case KeyEvent.VK_SPACE:
+			{
+				fireBullet();
 				break;
 			}
 		}
@@ -785,6 +818,10 @@ public class MyGame extends VariableFrameRateGame
 		this.useSlowTank = val;
 	}
 
+	public void setUseAnimations(boolean val) {
+		this.useAnimations = val;
+	}
+
 	public void setTurretShouldRotate(boolean shouldRotate) {
 		turretShouldRotate = shouldRotate;
 	}
@@ -860,15 +897,22 @@ public class MyGame extends VariableFrameRateGame
 		tankTurret.propagateRotation(true);
 		tankTurret.applyParentRotationToPosition(true);
 
-		// Gun
-		tankGun = new GameObject(tankTurret, tankGunS, texture);
-		tankGun.setLocalTranslation(new Matrix4f().translation(0f, gunOffsetY, gunOffsetZ));
-		tankGun.propagateTranslation(true);
-		tankGun.propagateRotation(true);
+        // Gun (child of turret base)
+        tankGun = new GameObject(tankTurret, tankGunS, playerHealthBarT);
+        tankGun.setLocalTranslation(new Matrix4f().translation(0,gunOffsetY, gunOffsetZ));
+        tankGun.propagateTranslation(true);
+        tankGun.propagateRotation(true);
 		tankGun.applyParentRotationToPosition(true);
-
-		avatar.lookAt(new Vector3f(0, 0, 0));
-
+		
+		// build bullet spawn point
+		gunTip = new GameObject(tankGun);
+        gunTip.setLocalTranslation(new Matrix4f().translation(0,0,2.1f));
+		gunTip.setLocalScale(new Matrix4f().scaling(5f));
+        gunTip.propagateTranslation(true);
+        gunTip.propagateRotation(true);
+		gunTip.applyParentRotationToPosition(true);
+		avatar.lookAt(new Vector3f(0,0,0));
+		
 		// Optional transform correction
 		Matrix4f correctedTransform = new Matrix4f().identity()
 			.mul(new Matrix4f().rotationZ((float) Math.toRadians(90.0f)))
@@ -900,10 +944,10 @@ public class MyGame extends VariableFrameRateGame
 	}
 
 	private void updateAvatarHeight() {
-		Vector3f loc = avatar.getWorldLocation();
-		float height = terrain.getHeight(loc.x(), loc.z());
-		Vector3f corrected = new Vector3f(loc.x(), height - 9f, loc.z());
-		avatar.setLocalLocation(corrected);
+		// Vector3f loc = avatar.getWorldLocation();
+		// float height = terrain.getHeight(loc.x(), loc.z());
+		// Vector3f corrected = new Vector3f(loc.x(), height - 9f, loc.z());
+		// avatar.setLocalLocation(corrected);
 	}
 
 	private void updateTurretHeight() {
@@ -1159,5 +1203,48 @@ public class MyGame extends VariableFrameRateGame
 	public CameraOrbit3D getOrbitController() {
 		return orbitController;
 	}
+	
+	public void fireBullet() { 
+		Vector3f position = gunTip.getWorldLocation();
+		Vector3f direction = tankGun.getWorldForwardVector();
+		System.out.println("ATTEMPTING TO FIRE BULLET");
+		System.out.println("Bullet Spawn Y: " + position.y());
+		System.out.println("Applying Bullet Velocity: " + direction.mul(30f));
+		Bullet bullet = new Bullet(engine, physicsEngine, ghostS, ghostT, position, direction, this, gunTip);
+		activeBullets.add(bullet);
+	}
 
+	public void updateBullets() {
+		Iterator<Bullet> iterator = activeBullets.iterator();
+		while (iterator.hasNext()) {
+			Bullet b = iterator.next();
+			GameObject obj = b.getBulletObject();
+
+			// -- Sync visual transform with physics transform ---
+			float[] floatTransform = toFloatArray(obj.getPhysicsObject().getTransform());
+			Matrix4f physicsMatrix = new Matrix4f().set(floatTransform);
+			Matrix4f translationOnly = new Matrix4f().identity().setTranslation(physicsMatrix.m30(), physicsMatrix.m31(), physicsMatrix.m32());
+			obj.setLocalTranslation(translationOnly);
+
+			// --- Check terrain height to remove bullet if it falls too low ---
+			Vector3f loc = obj.getWorldLocation();
+			System.out.println("Bullet Height: " + loc.y());
+
+			//float mazeHeight = terrain.getHeight(loc.x(), loc.z());
+			if (loc.y() < 0 - 10f) { // too low = delete
+				//System.out.println("Terrain Height: " + terrainHeight);
+				b.deactivate(engine, physicsEngine);
+				iterator.remove();
+			}
+
+			// for (PowerUp boost : powerUps) {
+			// 	if (obj.getWorldLocation().distance(boost.getBoostObject().getWorldLocation()) < 1.0f) {
+			// 		System.out.println("Bullet hit power-up!");
+			// 		//b.deactivate(engine, physicsEngine);
+			// 		//iterator.remove();
+			// 		break;
+			// 	}
+			// }
+		}
+	}
 }

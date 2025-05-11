@@ -12,7 +12,7 @@ public class ActivateAction extends BTAction {
     private boolean scanAnimationStarted = false;
     private AnimatedShape.EndType scanEndType = AnimatedShape.EndType.LOOP;
     private float elapsedTime = 0f;
-    private final float animationDuration = 2000f;
+    private final float animationDuration = 180f;
 
     public ActivateAction(MyGame g) {
         game = g;
@@ -27,7 +27,7 @@ public class ActivateAction extends BTAction {
         
         System.out.println(elapsedTime);
         if (!activateAnimationStarted) {
-            System.out.println("[ActivateAction] Starting ACTIVATE animation");
+            //System.out.println("[ActivateAction] Starting ACTIVATE animation");
             turretS.playAnimation("ACTIVATE", 3.0f, AnimatedShape.EndType.PAUSE, 0);
             activateAnimationStarted = true;
             elapsedTime = 0f;
@@ -37,7 +37,7 @@ public class ActivateAction extends BTAction {
         System.out.println(elapsedTime);
         if (elapsedTime >= animationDuration) {
             if (!scanAnimationStarted) {
-                System.out.println("[ActivateAction] Activation animation completed, elapsedTime: " + elapsedTime);
+                //System.out.println("[ActivateAction] Activation animation completed, elapsedTime: " + elapsedTime);
                 turretS.playAnimation("SCAN", 3.0f, scanEndType, 0);
                 scanAnimationStarted = true;
             }

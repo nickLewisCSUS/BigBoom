@@ -27,11 +27,11 @@ public class PlayerVeryNearCondition extends BTCondition {
 
         float dist = closest.getWorldLocation().distance(turret.getWorldLocation());
         boolean inRange = (dist <= 10.0f);
-        System.out.println("Previous State: " + controller.getPreviousState());
+        //System.out.println("Previous State: " + controller.getPreviousState());
         if (inRange && controller.getPreviousState() != TurretAIController.TurretState.VERY_NEAR) {
             controller.setPreviousState(TurretState.VERY_NEAR);
             activateAction.setScanActivationStarted(false);
-            System.out.println("DEBUG [PlayerVeryNearCondition]: Closest distance = " + dist + ", In range: " + (dist <= 10.0f));
+            //System.out.println("DEBUG [PlayerVeryNearCondition]: Closest distance = " + dist + ", In range: " + (dist <= 10.0f));
         }
         return inRange;
     }
