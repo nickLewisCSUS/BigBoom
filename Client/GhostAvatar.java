@@ -22,6 +22,7 @@ public class GhostAvatar extends GameObject
 	private boolean isHeadlightOn = false;
 	private GameObject ghostTurret;
 	private GameObject ghostGun;
+	private GameObject ghostGunTip;
 	UUID uuid;
 
 	public GhostAvatar(UUID id, ObjShape bodyShape, ObjShape turretShape, ObjShape gunShape, TextureImage texture, Vector3f pos, Engine e, float scale) {
@@ -51,6 +52,13 @@ public class GhostAvatar extends GameObject
 	ghostGun.propagateTranslation(true);
 	ghostGun.propagateRotation(true);
 	ghostGun.applyParentRotationToPosition(true);
+
+	ghostGunTip = new GameObject(ghostGun);
+	ghostGunTip.setLocalTranslation(new Matrix4f().translation(0, 0, 2.1f));
+	ghostGunTip.setLocalScale(new Matrix4f().scaling(5f)); // optional
+	ghostGunTip.propagateTranslation(true);
+	ghostGunTip.propagateRotation(true);
+	ghostGunTip.applyParentRotationToPosition(true);
 }
 
 	public void createHealthBar(ObjShape shape, TextureImage texture) {
@@ -152,5 +160,9 @@ public class GhostAvatar extends GameObject
 		ghostGun.propagateTranslation(true);
 		ghostGun.propagateRotation(true);
 		ghostGun.applyParentRotationToPosition(true);
+	}
+
+	public GameObject getGunTip() {
+		return ghostGunTip;
 	}
 }

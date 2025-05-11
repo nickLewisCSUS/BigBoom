@@ -1220,6 +1220,10 @@ public class MyGame extends VariableFrameRateGame
 		System.out.println("Applying Bullet Velocity: " + direction.mul(30f));
 		Bullet bullet = new Bullet(engine, physicsEngine, bulletS, bulletT, position, rotation, direction, this, gunTip);
 		activeBullets.add(bullet);
+
+		if (protClient != null) {
+			protClient.sendBulletMessage(position, direction);
+		}
 	}
 
 	public void updateBullets() {
@@ -1254,5 +1258,13 @@ public class MyGame extends VariableFrameRateGame
 				}
 			}
 		}
+	}
+
+	public PhysicsEngine getPhysicsEngine() {
+		return physicsEngine;
+	}
+
+	public ArrayList<Bullet> getActiveBullets() {
+		return activeBullets;
 	}
 }
