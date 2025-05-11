@@ -1,12 +1,16 @@
 package Client;
 
+import tage.Engine;
 import tage.GameObject;
 import tage.ai.behaviortrees.BTAction;
 import tage.ai.behaviortrees.BTStatus;
 import tage.shapes.AnimatedShape;
+import tage.nodeControllers.RotationController;
+import org.joml.Vector3f;
 
 public class ActivateAction extends BTAction {
     private MyGame game;
+    private Engine engine;
     private AnimatedShape turretS;
     private boolean activateAnimationStarted = false;
     private boolean scanAnimationStarted = false;
@@ -15,8 +19,11 @@ public class ActivateAction extends BTAction {
     private final float animationDuration = 180f;
 
     public ActivateAction(MyGame g) {
-        game = g;
-        turretS = (AnimatedShape) g.getTurret().getShape();
+        this.game = g;
+        this.engine = g.getEngine();  
+        if (game.getUseAnimations()) {
+            turretS = (AnimatedShape) g.getTurret().getShape();
+        }
     }
 
     protected BTStatus update(float e) {
@@ -27,8 +34,10 @@ public class ActivateAction extends BTAction {
         
         System.out.println(elapsedTime);
         if (!activateAnimationStarted) {
-            //System.out.println("[ActivateAction] Starting ACTIVATE animation");
-            turretS.playAnimation("ACTIVATE", 3.0f, AnimatedShape.EndType.PAUSE, 0);
+            //System.out.println("[ActivateAction] Starting ACTIVATE animation");  
+            if (game.getUseAnimations()) {
+                turretS.playAnimation("ACTIVATE", 3.0f, AnimatedShape.EndType.PAUSE, 0);
+            }
             activateAnimationStarted = true;
             elapsedTime = 0f;
             System.out.println(elapsedTime);
@@ -38,7 +47,9 @@ public class ActivateAction extends BTAction {
         if (elapsedTime >= animationDuration) {
             if (!scanAnimationStarted) {
                 //System.out.println("[ActivateAction] Activation animation completed, elapsedTime: " + elapsedTime);
-                turretS.playAnimation("SCAN", 3.0f, scanEndType, 0);
+                if (game.getUseAnimations()) {
+                    turretS.playAnimation("SCAN", 3.0f, scanEndType, 0);
+                }
                 scanAnimationStarted = true;
             }
             return BTStatus.BH_SUCCESS;

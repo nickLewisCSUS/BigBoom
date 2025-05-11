@@ -212,16 +212,22 @@ public class ProtocolClient extends GameConnectionClient
 				Float.parseFloat(messageTokens[4])
 			);
 
+			float[] rotVals = new float[16];
+			for (int i = 0; i < 16; i++) {
+				rotVals[i] = Float.parseFloat(messageTokens[5 + i]);
+			}
+			Matrix4f rot = new Matrix4f().set(rotVals);
+
 			Vector3f dir = new Vector3f(
-				Float.parseFloat(messageTokens[5]),
-				Float.parseFloat(messageTokens[6]),
-				Float.parseFloat(messageTokens[7])
+				Float.parseFloat(messageTokens[21]),
+				Float.parseFloat(messageTokens[22]),
+				Float.parseFloat(messageTokens[23])
 			);
 
 			GhostAvatar ghost = game.getGhostManager().getGhostByID(shooterId);
 			GameObject ghostGunTip = (ghost != null) ? ghost.getGunTip() : null;
 
-			Bullet ghostBullet = new Bullet(game.getEngine(), game.getPhysicsEngine(), game.getGhostShape(), game.getGhostTexture(), pos, dir, game, ghostGunTip);
+			Bullet ghostBullet = new Bullet(game.getEngine(), game.getPhysicsEngine(), game.getBulletShape(), game.getBulletTexture(), pos, rot, dir, game, ghostGunTip);
 			game.getActiveBullets().add(ghostBullet);
 		}
 

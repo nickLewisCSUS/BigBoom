@@ -15,7 +15,9 @@ public class TrackPlayerAction extends BTAction {
 
     public TrackPlayerAction(MyGame g) {
         game = g;
-        turretS = (AnimatedShape) g.getTurret().getShape();
+        if (game.getUseAnimations()) {
+            turretS = (AnimatedShape) g.getTurret().getShape();
+        }
     }
 
     protected BTStatus update(float e) {
@@ -28,7 +30,9 @@ public class TrackPlayerAction extends BTAction {
 
         if (!playerTrackingStarted) {
            //System.out.println("Stopping Animation!");
-            turretS.stopAnimation();
+           if (game.getUseAnimations()) {
+                turretS.stopAnimation();
+            }
             playerTrackingStarted = true;
         }
 

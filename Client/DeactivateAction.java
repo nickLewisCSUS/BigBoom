@@ -14,7 +14,9 @@ public class DeactivateAction extends BTAction {
 
     public DeactivateAction(MyGame g) {
         game = g;
-        turretS = (AnimatedShape) g.getTurret().getShape();
+        if (game.getUseAnimations()) {
+            turretS = (AnimatedShape) g.getTurret().getShape();
+        }
     }
 
     protected BTStatus update(float e) {
@@ -23,8 +25,10 @@ public class DeactivateAction extends BTAction {
         if (closest == null) return BTStatus.BH_FAILURE;
 
         if (!deactivateAnimationStarted) {
-            //System.out.println("[DeactivateAction] Starting DEACTIVATE animation");
-            turretS.playAnimation("DEACTIVATE", 3.0f, AnimatedShape.EndType.PAUSE, 0);
+            //System.out.println("[DeactivateAction] Starting DEACTIVATE animation");       
+            if (game.getUseAnimations()) {
+                turretS.playAnimation("DEACTIVATE", 3.0f, AnimatedShape.EndType.PAUSE, 0);
+            }
             deactivateAnimationStarted = true;
             elapsedTime = 0f;
             System.out.println(elapsedTime);

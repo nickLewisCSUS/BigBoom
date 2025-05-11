@@ -49,13 +49,13 @@ public class MyGame extends VariableFrameRateGame
 	private Matrix4f initialTranslation, initialRotation, initialScale;
 	private double startTime, prevTime, elapsedTime, amt;
 
-	private GameObject avatar, x, y, z, playerHealthBar,terrain, maze, turret, headlightNode, tankTurret, tankGun, gunTip;
+	private GameObject avatar, x, y, z, playerHealthBar,terrain, maze, turret, headlightNode, tankTurret, tankGun, gunTip, turretTip;
 	private AnimatedShape turretS_A;
 	private ObjShape ghostS, tankS, slowTankS, linxS, linyS, linzS, playerHealthBarS, shieldS, terrainS, mazeS, speedBoostS, healthBoostS, tankBodyS, tankTurretS, tankGunS, bulletS, turretS;
 	private TextureImage tankT, slowTankT, ghostT, playerHealthBarT, ghostHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, healthBoostT, turretT, bulletT;
 	
 	private boolean useSlowTank = false;
-	private boolean useAnimations = true;
+	private boolean useAnimations = false;
 
 	private boolean physicsRenderEnabled = true;
 
@@ -265,6 +265,14 @@ public class MyGame extends VariableFrameRateGame
 		turret.setLocalTranslation(initialTranslation);
 		initialScale = (new Matrix4f()).scaling(0.5f, 0.5f, 0.5f);
 		turret.setLocalScale(initialScale);
+
+		// build bullet spawn point
+		turretTip = new GameObject(turret);
+        turretTip.setLocalTranslation(new Matrix4f().translation(0.147f,1.1f,1.4f));
+		turretTip.setLocalScale(new Matrix4f().scaling(1f));
+        turretTip.propagateTranslation(true);
+        turretTip.propagateRotation(true);
+		turretTip.applyParentRotationToPosition(true);
 		
 		// add X,Y,-Z axes
 		x = new GameObject(GameObject.root(), linxS);
@@ -386,9 +394,8 @@ public class MyGame extends VariableFrameRateGame
 		setEarParameters();
 		turretSound.play();
 
-		if (useAnimations) {
-			turretAI = new TurretAIController(this);
-		}
+		turretAI = new TurretAIController(this);
+	
 	}
 
 	public GameObject getAvatar() { return avatar; }
@@ -499,8 +506,8 @@ public class MyGame extends VariableFrameRateGame
 		
 		if (useAnimations) {
 			turretS_A.updateAnimation();
-			turretAI.update((float) elapsedTime);
 		}
+		turretAI.update((float) elapsedTime);
 
 		for (PowerUpLight pul : powerUpLights) {
 			pul.spotlight.setLocation(pul.holder.getWorldLocation());
@@ -786,6 +793,8 @@ public class MyGame extends VariableFrameRateGame
 
 	public ObjShape getGhostShape() { return ghostS; }
 	public TextureImage getGhostTexture() { return ghostT; }
+	public ObjShape getBulletShape() { return bulletS; }
+	public TextureImage getBulletTexture() { return bulletT; }
 	public GhostManager getGhostManager() { return gm; }
 	public Engine getEngine() { return engine; }
 	
@@ -820,6 +829,10 @@ public class MyGame extends VariableFrameRateGame
 
 	public void setUseAnimations(boolean val) {
 		this.useAnimations = val;
+	}
+
+	public boolean getUseAnimations() {
+		return this.useAnimations;
 	}
 
 	public void setTurretShouldRotate(boolean shouldRotate) {
