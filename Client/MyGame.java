@@ -992,8 +992,8 @@ public class MyGame extends VariableFrameRateGame
 			);
 			speedObj.setPhysicsObject(speedPhys);
             rotCtrl.addTarget(speedObj);
-			speedPhys = (engine.getSceneGraph().addPhysicsSphere(0, toDoubleArray(speedObj.getLocalTranslation().get(new float[16])), 0.7f));	
-			speedObj.setPhysicsObject(speedPhys);
+			// speedPhys = (engine.getSceneGraph().addPhysicsSphere(0, toDoubleArray(speedObj.getLocalTranslation().get(new float[16])), 0.7f));	
+			// speedObj.setPhysicsObject(speedPhys);
 
 			SpeedBoost speedBoost = new SpeedBoost(this, speedObj, speedPhys, nextBoostID++, protClient);
 			powerUps.add(speedBoost);
@@ -1012,8 +1012,8 @@ public class MyGame extends VariableFrameRateGame
 			healthPhys = (engine.getSceneGraph().addPhysicsSphere(0, toDoubleArray(healthObj.getLocalTranslation().get(new float[16])), 0.7f));	
 			healthObj.setPhysicsObject(healthPhys);
 
-			HealthBoost healthBoost = new HealthBoost(this, healthObj, healthPhys, nextBoostID++, protClient);
-			powerUps.add(healthBoost);
+			// HealthBoost healthBoost = new HealthBoost(this, healthObj, healthPhys, nextBoostID++, protClient);
+			// powerUps.add(healthBoost);
 
 			
 			// --- Sheild Powerup ---
@@ -1030,8 +1030,8 @@ public class MyGame extends VariableFrameRateGame
 			sheildPhys = (engine.getSceneGraph().addPhysicsSphere(0, toDoubleArray(sheildObj.getLocalTranslation().get(new float[16])), 0.7f));	
 			sheildObj.setPhysicsObject(sheildPhys);
 
-			ShieldPowerUp shieldPowerUp = new ShieldPowerUp(this, sheildObj, sheildPhys, nextBoostID++, protClient);
-			powerUps.add(shieldPowerUp);
+			// ShieldPowerUp shieldPowerUp = new ShieldPowerUp(this, sheildObj, sheildPhys, nextBoostID++, protClient);
+			// powerUps.add(shieldPowerUp);
 
 			addSpotlightAbove(speedObj, new Vector3f(0f, 1f, 0f));     // green for speed
 			addSpotlightAbove(healthObj, new Vector3f(1f, 0f, 0f));    // red for health
