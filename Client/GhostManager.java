@@ -31,7 +31,7 @@ public class GhostManager
 		float scale = avatarType.equalsIgnoreCase("slow") 
 			? game.getSlowTankScale() : game.getFastTankScale();
 
-		GhostAvatar ghost = new GhostAvatar(id, bodyShape, turretShape, gunShape, texture, position, game.getEngine(), scale);
+		GhostAvatar ghost = new GhostAvatar(id, bodyShape, turretShape, gunShape, texture, position, game.getEngine(), scale, id);
 		ghost.createHealthBar(game.getPlayerHealthBarShape(), game.getPlayerHealthBarTexture());
 
 		ghostAvatars.add(ghost);

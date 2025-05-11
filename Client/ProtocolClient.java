@@ -138,6 +138,12 @@ public class ProtocolClient extends GameConnectionClient
 				float health = Float.parseFloat(messageTokens[2]);
 				ghostManager.setGhostHealth(ghostID, health);
 			}
+
+			if (messageTokens[0].equals("ghosthealth")) {
+				UUID ghostId = UUID.fromString(messageTokens[1]);
+				float health = Float.parseFloat(messageTokens[2]);
+				ghostManager.setGhostHealth(ghostId, health);
+			}
 			
 			// Handle MOVE message
 			// Format: (move,remoteId,x,y,z)
@@ -220,8 +226,21 @@ public class ProtocolClient extends GameConnectionClient
 
 			GhostAvatar ghost = game.getGhostManager().getGhostByID(shooterId);
 			GameObject ghostGunTip = (ghost != null) ? ghost.getGunTip() : null;
+			Matrix4f ghostRotation = ghostGunTip.getWorldRotation();
 
-			Bullet ghostBullet = new Bullet(game.getEngine(), game.getPhysicsEngine(), game.getGhostShape(), game.getGhostTexture(), pos, dir, game, ghostGunTip);
+			Bullet ghostBullet = new Bullet(
+				game.getEngine(),
+				game.getPhysicsEngine(),
+				game.getGhostShape(),
+				game.getGhostTexture(),
+				pos,
+				ghostRotation,  
+				dir,
+				game,
+				ghostGunTip,
+				false,
+				shooterId
+			);
 			game.getActiveBullets().add(ghostBullet);
 		}
 
@@ -542,6 +561,24 @@ public class ProtocolClient extends GameConnectionClient
 				position.x(), position.y(), position.z(),
 				direction.x(), direction.y(), direction.z()
 			);
+			sendPacket(msg);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void sendHealthUpdateToGhost(UUID ghostId, float newHealth) {
+		try {
+			String msg = String.format("ghosthealth,%s,%.2f", ghostId.toString(), newHealth);
+			sendPacket(msg);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void sendKillToServer(UUID killerId) {
+		try {
+			String msg = "kill," + killerId.toString();
 			sendPacket(msg);
 		} catch (IOException e) {
 			e.printStackTrace();
