@@ -25,7 +25,7 @@ public class GhostAvatar extends GameObject
 	private GameObject ghostGunTip;
 	UUID uuid;
 
-	public GhostAvatar(UUID id, ObjShape bodyShape, ObjShape turretShape, ObjShape gunShape, TextureImage texture, Vector3f pos, Engine e, float scale) {
+	public GhostAvatar(UUID id, ObjShape bodyShape, ObjShape turretShape, ObjShape gunShape, TextureImage texture, Vector3f pos, Engine e, float scale, UUID shooterId) {
 	super(GameObject.root(), bodyShape, texture);
 	uuid = id;
 	engine = e;
@@ -164,5 +164,9 @@ public class GhostAvatar extends GameObject
 
 	public GameObject getGunTip() {
 		return ghostGunTip;
+	}
+
+	public float getCurrentHealth() {
+		return currentHealth;
 	}
 }

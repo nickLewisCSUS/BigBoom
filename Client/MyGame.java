@@ -69,6 +69,7 @@ public class MyGame extends VariableFrameRateGame
 	private boolean showHealthBoostHUD = false;
 
 	private Map<UUID, Integer> scoreboard = new HashMap<>();
+	private Map<UUID, String> playerNameMap = new HashMap<>();
 
 	private boolean turretShouldRotate = false;
 	private TurretAIController turretAI;
@@ -430,6 +431,8 @@ public class MyGame extends VariableFrameRateGame
 		}
 		Vector3f white = new Vector3f(1f, 1f, 1f);
 		(engine.getHUDmanager()).setHUD2(scoreText.toString(), white, 20, 900);
+
+		if (!running) return;
 		
 		// build and set HUD
 		int elapsTimeSec = Math.round((float)(System.currentTimeMillis()-startTime)/1000.0f);
@@ -440,6 +443,26 @@ public class MyGame extends VariableFrameRateGame
 
 		Vector3f hudColor = new Vector3f(0.9f, 0.6f, 0.1f); 
 		(engine.getHUDmanager()).setHUD3(hudText.toString(), hudColor, 25, 40);
+
+		for (UUID playerId : scoreboard.keySet()) {
+			int kills = scoreboard.get(playerId);
+			if (kills >= 5 && running) {
+				running = false;
+
+				String winnerName = playerNameMap.getOrDefault(playerId, playerId.toString());
+				String winner = playerId.equals(protClient.getID()) ? "YOU WIN!" : winnerName + " WINS!";
+
+				// Centered on screen
+				int screenWidth = engine.getRenderSystem().getGLCanvas().getWidth();
+				int screenHeight = engine.getRenderSystem().getGLCanvas().getHeight();
+				int centerX = screenWidth / 2 - 150;
+				int centerY = screenHeight / 2;
+
+				(engine.getHUDmanager()).setHUD1(winner, new Vector3f(1f, 0f, 0f), centerX, centerY);
+				System.out.println(winner + " Game over!");
+				break;
+			}
+		}
 
 		if (!initializedBoosts && (isPowerUpAuthority || !isClientConnected)) {
 			int counter = 0;
@@ -1088,6 +1111,13 @@ public class MyGame extends VariableFrameRateGame
 
 	public void updateScoreboard(Map<UUID, Integer> newBoard) {
 		scoreboard = newBoard;
+
+		// Update player name mapping for display
+		playerNameMap.clear();
+		int i = 1;
+		for (UUID id : scoreboard.keySet()) {
+			playerNameMap.put(id, "Player " + i++);
+		}
 	}
 
 	public boolean isUsingSlowTank() {
@@ -1228,10 +1258,11 @@ public class MyGame extends VariableFrameRateGame
 		Vector3f position = gunTip.getWorldLocation();
 		Matrix4f rotation = gunTip.getWorldRotation();
 		Vector3f direction = tankGun.getWorldForwardVector();
+		UUID shooterId = protClient.getID();
 		System.out.println("ATTEMPTING TO FIRE BULLET");
 		System.out.println("Bullet Spawn Y: " + position.y());
 		System.out.println("Applying Bullet Velocity: " + direction.mul(30f));
-		Bullet bullet = new Bullet(engine, physicsEngine, bulletS, bulletT, position, rotation, direction, this, gunTip);
+		Bullet bullet = new Bullet(engine, physicsEngine, bulletS, bulletT, position, rotation, direction, this, gunTip, true, shooterId);
 		activeBullets.add(bullet);
 
 		if (protClient != null) {
@@ -1255,13 +1286,53 @@ public class MyGame extends VariableFrameRateGame
 			Vector3f loc = obj.getWorldLocation();
 			System.out.println("Bullet Height: " + loc.y());
 
-			//float mazeHeight = terrain.getHeight(loc.x(), loc.z());
+			// float mazeHeight = terrain.getHeight(loc.x(), loc.z());
 			if (loc.y() < 0 - 10f) { // too low = delete
 				//System.out.println("Terrain Height: " + terrainHeight);
 				b.deactivate(engine, physicsEngine);
 				iterator.remove();
 			}
 
+			for (GhostAvatar ghost : gm.getGhosts()) {
+				if (b.getBulletObject().getWorldLocation().distance(ghost.getWorldLocation()) < 1.5f) {
+					ghost.setHealth(ghost.getCurrentHealth() - 10f);
+					protClient.sendHealthUpdateToGhost(ghost.getID(), ghost.getCurrentHealth());
+					b.deactivate(engine, physicsEngine);
+					iterator.remove();
+					break;
+				}
+
+				if (!b.isOwnedByLocalPlayer() && b.getBulletObject().getWorldLocation().distance(avatar.getWorldLocation()) < 1.5f) {
+					if (!isShieldActive()) {
+						currentHealth -= 10f;
+						if (currentHealth <= 0) {
+							currentHealth = maxHealth; // reset
+							updatePlayerHealthBar();
+							protClient.sendHealthUpdate(currentHealth);
+
+							// Add kill to the ghost avatar who fired this bullet
+							if (b.getShooterID() != null) {
+								protClient.sendKillToServer(b.getShooterID());
+							}
+							System.out.println("You were killed! Health reset and kill added.");
+						} else {
+							protClient.sendHealthUpdate(currentHealth);
+						}
+					}
+					b.deactivate(engine, physicsEngine);
+					iterator.remove();
+					continue;
+				}
+			}
+
+			// for (PowerUp boost : powerUps) {
+			// 	if (obj.getWorldLocation().distance(boost.getBoostObject().getWorldLocation()) < 1.0f) {
+			// 		System.out.println("Bullet hit power-up!");
+			// 		//b.deactivate(engine, physicsEngine);
+			// 		//iterator.remove();
+			// 		break;
+			// 	}
+			// }
 			for (PowerUp boost : powerUps) {
 				if (obj.getWorldLocation().distance(boost.getBoostObject().getWorldLocation()) < 1.0f) {
 					System.out.println("Bullet hit power-up!");
@@ -1271,6 +1342,12 @@ public class MyGame extends VariableFrameRateGame
 				}
 			}
 		}
+	}
+
+	private void updatePlayerHealthBar() {
+		float healthRatio = currentHealth / maxHealth;
+		float baseLength = 7.0f;
+		playerHealthBar.setLocalScale(new Matrix4f().scaling(baseLength * healthRatio, 0.1f, 0.1f));
 	}
 
 	public PhysicsEngine getPhysicsEngine() {
