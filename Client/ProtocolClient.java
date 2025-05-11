@@ -562,12 +562,25 @@ public class ProtocolClient extends GameConnectionClient
 
 	public void sendBulletMessage(Vector3f position, Vector3f direction) {
 		try {
-			String msg = String.format("bullet,%s,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f",
-				id.toString(),
-				position.x(), position.y(), position.z(),
-				direction.x(), direction.y(), direction.z()
-			);
-			sendPacket(msg);
+			Matrix4f rot = game.getTankGun().getWorldRotation();  // Include this
+			StringBuilder msg = new StringBuilder("bullet," + id.toString());
+
+			// position
+			msg.append(",").append(position.x())
+			.append(",").append(position.y())
+			.append(",").append(position.z());
+
+			// rotation (16 floats)
+			for (int i = 0; i < 4; i++)
+				for (int j = 0; j < 4; j++)
+					msg.append(",").append(rot.get(i, j));
+
+			// direction
+			msg.append(",").append(direction.x())
+			.append(",").append(direction.y())
+			.append(",").append(direction.z());
+
+			sendPacket(msg.toString());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
