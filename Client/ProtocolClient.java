@@ -202,6 +202,29 @@ public class ProtocolClient extends GameConnectionClient
 				}
 			}
 
+			if (messageTokens[0].equals("bullet")) {
+			UUID shooterId = UUID.fromString(messageTokens[1]);
+			if (shooterId.equals(id)) return; // skip if it's your own shot
+
+			Vector3f pos = new Vector3f(
+				Float.parseFloat(messageTokens[2]),
+				Float.parseFloat(messageTokens[3]),
+				Float.parseFloat(messageTokens[4])
+			);
+
+			Vector3f dir = new Vector3f(
+				Float.parseFloat(messageTokens[5]),
+				Float.parseFloat(messageTokens[6]),
+				Float.parseFloat(messageTokens[7])
+			);
+
+			GhostAvatar ghost = game.getGhostManager().getGhostByID(shooterId);
+			GameObject ghostGunTip = (ghost != null) ? ghost.getGunTip() : null;
+
+			Bullet ghostBullet = new Bullet(game.getEngine(), game.getPhysicsEngine(), game.getGhostShape(), game.getGhostTexture(), pos, dir, game, ghostGunTip);
+			game.getActiveBullets().add(ghostBullet);
+		}
+
 
 			// Handle POWERUP message
 			// Format: (powerup,remoteID,boostID,x,y,z)
@@ -499,15 +522,30 @@ public class ProtocolClient extends GameConnectionClient
 	}
 
 	public void sendTankTurretRotationMessage(Matrix4f turretRot) {
-    try {
-        StringBuilder msg = new StringBuilder("turretRot," + id.toString());
-        for (int i = 0; i < 4; i++)
-            for (int j = 0; j < 4; j++)
-                msg.append(",").append(turretRot.get(i, j));
-        sendPacket(msg.toString());
-    } catch (IOException e) {
-        e.printStackTrace();
-    }
-}
+		try {
+			StringBuilder msg = new StringBuilder("turretRot," + id.toString());
+			for (int i = 0; i < 4; i++)
+				for (int j = 0; j < 4; j++)
+					msg.append(",").append(turretRot.get(i, j));
+			sendPacket(msg.toString());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+
+	}
+
+	public void sendBulletMessage(Vector3f position, Vector3f direction) {
+		try {
+			String msg = String.format("bullet,%s,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f",
+				id.toString(),
+				position.x(), position.y(), position.z(),
+				direction.x(), direction.y(), direction.z()
+			);
+			sendPacket(msg);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 
 }
