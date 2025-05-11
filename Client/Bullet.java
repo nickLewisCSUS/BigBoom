@@ -15,8 +15,9 @@ public class Bullet {
     private GameObject bulletObj;
     private PhysicsObject bulletPhys;
     private boolean active = true;
+    private boolean ownedByLocalPlayer;
 
-    public Bullet(Engine engine, PhysicsEngine physics, ObjShape shape, TextureImage texture, Vector3f worldPosition, Vector3f direction, MyGame game, GameObject gunTip) {
+    public Bullet(Engine engine, PhysicsEngine physics, ObjShape shape, TextureImage texture, Vector3f worldPosition, Vector3f direction, MyGame game, GameObject gunTip, boolean ownedByLocalPlayer) {
         // Create visual bullet object
         bulletObj = new GameObject(GameObject.root(), shape, texture);
         bulletObj.setLocalTranslation(new Matrix4f().translation(worldPosition));
@@ -39,6 +40,8 @@ public class Bullet {
         float[] velocityArr = new float[] { velocity.x(), velocity.y(), velocity.z() };
         bulletPhys.setLinearVelocity(velocityArr);
         bulletObj.setPhysicsObject(bulletPhys);
+
+        this.ownedByLocalPlayer = ownedByLocalPlayer;
     }
 
     public GameObject getBulletObject() {
@@ -50,5 +53,9 @@ public class Bullet {
         // active = false;
         engine.getSceneGraph().removeGameObject(bulletObj);
         engine.getSceneGraph().removePhysicsObject(bulletPhys);
+    }
+
+    public boolean isOwnedByLocalPlayer() {
+        return ownedByLocalPlayer;
     }
 }

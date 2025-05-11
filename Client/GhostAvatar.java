@@ -165,4 +165,8 @@ public class GhostAvatar extends GameObject
 	public GameObject getGunTip() {
 		return ghostGunTip;
 	}
+
+	public float getCurrentHealth() {
+		return currentHealth;
+	}
 }

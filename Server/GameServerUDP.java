@@ -103,6 +103,16 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 				}
 			}
 
+			if (messageTokens[0].equals("ghosthealth")) {
+				UUID sender = UUID.fromString(messageTokens[1]);
+				StringBuilder msg = new StringBuilder("ghosthealth," + messageTokens[1] + "," + messageTokens[2]);
+				try {
+					forwardPacketToAll(msg.toString(), sender);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+
 			if (messageTokens[0].equals("headlight")) {
 				UUID clientID = UUID.fromString(messageTokens[1]);
 			

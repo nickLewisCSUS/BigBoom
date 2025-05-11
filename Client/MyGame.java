@@ -1203,7 +1203,7 @@ public class MyGame extends VariableFrameRateGame
 		System.out.println("ATTEMPTING TO FIRE BULLET");
 		System.out.println("Bullet Spawn Y: " + position.y());
 		System.out.println("Applying Bullet Velocity: " + direction.mul(30f));
-		Bullet bullet = new Bullet(engine, physicsEngine, ghostS, ghostT, position, direction, this, gunTip);
+		Bullet bullet = new Bullet(engine, physicsEngine, ghostS, ghostT, position, direction, this, gunTip, true);
 		activeBullets.add(bullet);
 
 		if (protClient != null) {
@@ -1232,6 +1232,27 @@ public class MyGame extends VariableFrameRateGame
 				//System.out.println("Terrain Height: " + terrainHeight);
 				b.deactivate(engine, physicsEngine);
 				iterator.remove();
+			}
+
+			for (GhostAvatar ghost : gm.getGhosts()) {
+				if (b.getBulletObject().getWorldLocation().distance(ghost.getWorldLocation()) < 1.5f) {
+					ghost.setHealth(ghost.getCurrentHealth() - 10f);
+					protClient.sendHealthUpdateToGhost(ghost.getID(), ghost.getCurrentHealth());
+					b.deactivate(engine, physicsEngine);
+					iterator.remove();
+					break;
+				}
+
+				if (!b.isOwnedByLocalPlayer() && b.getBulletObject().getWorldLocation().distance(avatar.getWorldLocation()) < 1.5f) {
+					if (!isShieldActive()) {
+						currentHealth -= 10f;
+						if (currentHealth < 0) currentHealth = 0;
+						protClient.sendHealthUpdate(currentHealth);
+					}
+					b.deactivate(engine, physicsEngine);
+					iterator.remove();
+					continue;
+				}
 			}
 
 			// for (PowerUp boost : powerUps) {
