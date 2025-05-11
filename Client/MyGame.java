@@ -971,7 +971,7 @@ public class MyGame extends VariableFrameRateGame
 
 	public void buildPowerUps() {
 
-		int numEachType = 5;
+		int numEachType = 10;
 		
 		for (int i = 0; i < numEachType; i++) {
 			
@@ -1005,7 +1005,10 @@ public class MyGame extends VariableFrameRateGame
             rotCtrl.addTarget(healthObj);
 			healthPhys = (engine.getSceneGraph().addPhysicsSphere(0, toDoubleArray(healthObj.getLocalTranslation().get(new float[16])), 0.7f));	
 			healthObj.setPhysicsObject(healthPhys);
-			
+	
+			HealthBoost healthBoost = new HealthBoost(this, healthObj, healthPhys, nextBoostID++, protClient);
+			powerUps.add(healthBoost);
+
 			// --- Sheild Powerup ---
 			GameObject sheildObj = new GameObject(GameObject.root(), shieldS, shieldT);
 			sheildObj.setLocalScale(new Matrix4f().scaling(0.25f));
