@@ -31,11 +31,11 @@ public class FwdAction extends AbstractInputAction
 		float moveSpeed;
 
 		if (game.isBoosted()) {
-			movementAmount = game.isUsingSlowTank() ? 0.018f : 0.03f;
-			moveSpeed      = game.isUsingSlowTank() ? 0.035f : 0.06f;
+			movementAmount = game.isUsingSlowTank() ? 0.008f : 0.014f;
+			moveSpeed      = game.isUsingSlowTank() ? 0.0012f : 0.0022f;
 		} else {
 			movementAmount = game.isUsingSlowTank() ? 0.004f : 0.007f;
-			moveSpeed      = game.isUsingSlowTank() ? 0.012f : 0.025f;
+			moveSpeed      = game.isUsingSlowTank() ? 0.001f : 0.002f;
 		}
 		
 		if (id == Component.Identifier.Key.W) {

@@ -55,7 +55,7 @@ public class MyGame extends VariableFrameRateGame
 	private TextureImage tankT, slowTankT, ghostT, playerHealthBarT, ghostHealthBarT, shieldT, terrainHeightMap, terrainT, mazeHeightMap, mazeT, speedBoostT, healthBoostT, turretT, bulletT;
 	
 	private boolean useSlowTank = false;
-	private boolean useAnimations = false;
+	private boolean useAnimations = true;
 
 	private boolean physicsRenderEnabled = true;
 
